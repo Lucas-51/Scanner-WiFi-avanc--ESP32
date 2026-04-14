@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SondeDB — Dashboard WiFi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">◈ SondeDB</div>
+      <div class="logo-title">WiFi Monitor</div>
+      <div class="logo-sub">BTS CIEL — Analyse RF</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showSection('overview', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+        Vue générale
+        <div class="status-dot"></div>
+      </div>
+      <div class="nav-item" onclick="showSection('spectrum', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><polyline points="1,12 4,6 7,9 10,3 13,7 15,4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Spectre WiFi
+      </div>
+      <div class="nav-item" onclick="showSection('alertes', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 13h14L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6" x2="8" y2="9" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>
+        Alertes
+        <span class="nav-badge" id="badge-alertes">1</span>
+      </div>
+      <div class="nav-item" onclick="showSection('interventions', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-7" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="13" cy="4" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
+        Interventions
+      </div>
+      <div class="nav-item" onclick="showSection('sondes', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/></svg>
+        Sondes
+      </div>
+      <div class="nav-item" onclick="showSection('import', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 10V2M5 5l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Import données
+      </div>
+      <div class="nav-item" onclick="showSection('detail', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="7" x2="11" y2="7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="10" x2="9" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="3.5" cy="5.5" r="0.8" fill="currentColor"/></svg>
+        Détail sonde
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="live-indicator" id="live-indicator"><div class="live-dot"></div><span id="live-indicator-label">LIVE — Initialisation</span></div>
+      <div class="sidebar-meta" id="live-status">Connexion API en attente…</div>
+      <div style="margin-top:4px;color:var(--text3);font-size:10px;" id="last-update">Chargement...</div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="page-title">Vue générale</div>
+      </div>
+      <div class="page-sub" id="topbar-time">—</div>
+      <label class="import-btn" for="file-input-top">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 10V2M5 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Importer CSV
+        <input type="file" id="file-input-top" accept=".csv" style="display:none" onchange="handleFile(this)">
+      </label>
+    </div>
+
+    <div class="content">
+
+      <!-- ── OVERVIEW ──────────────────────────────────────────────────────── -->
+      <div class="section active" id="sec-overview">
+        <div id="import-banner" style="display:none" class="file-info">
+          <span class="file-info-icon">✓</span>
+          <span id="import-info-text">Données chargées</span>
+        </div>
+
+        <div class="kpi-row" style="margin-bottom:20px">
+          <div class="kpi-card green">
+            <div class="kpi-label">Sondes actives</div>
+            <div class="kpi-value" id="kpi-sondes">1</div>
+            <div class="kpi-sub">ESP32 déployées</div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-label">Réseaux détectés</div>
+            <div class="kpi-value" id="kpi-reseaux">1</div>
+            <div class="kpi-sub">SSIDs uniques</div>
+          </div>
+          <div class="kpi-card orange">
+            <div class="kpi-label">Mesures totales</div>
+            <div class="kpi-value" id="kpi-mesures">1</div>
+            <div class="kpi-sub">entrées mesure</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">Alertes actives</div>
+            <div class="kpi-value" id="kpi-alertes">1</div>
+            <div class="kpi-sub">nécessitent action</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Occupation canaux 2.4 GHz</div>
+              <div class="card-badge live">LIVE</div>
+            </div>
+            <div class="canal-grid" id="canal-grid"></div>
+            <div style="display:flex;gap:20px;margin-top:12px;font-size:10px;font-family:var(--mono);color:var(--text3)">
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent2);display:inline-block"></span>Actif</span>
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block"></span>Alerte</span>
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,255,255,0.08);display:inline-block"></span>Libre</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Alertes récentes</div>
+              <div class="card-badge live">LIVE</div>
+            </div>
+            <div class="scroll-body" id="alertes-mini-list"></div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:14px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Force signal (RSSI)</div>
+            </div>
+            <div id="rssi-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Position des sondes</div>
+            </div>
+            <div class="sonde-map">
+              <div class="map-grid"></div>
+              <div id="sonde-map-nodes"></div>
+              <div class="map-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Sonde active</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div>Sonde en alerte</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SPECTRE ────────────────────────────────────────────────────────── -->
+      <div class="section" id="sec-spectrum">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">
+            <div class="card-title">Spectre WiFi 2.4 GHz — Puissance par canal</div>
+            <div class="card-badge live">TEMPS RÉEL</div>
+          </div>
+          <div class="spectrum-wrap">
+            <canvas id="spectrumChart"></canvas>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Distribution canaux</div></div>
+            <div style="position:relative;height:220px"><canvas id="canalPieChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Historique RSSI</div></div>
+            <div style="position:relative;height:220px"><canvas id="rssiHistChart"></canvas></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-header"><div class="card-title">Mesures détaillées</div></div>
+          <div class="scroll-body">
+            <table class="data-table" id="mesures-table">
+              <thead><tr>
+                <th>SSID</th><th>BSSID</th><th>RSSI (dBm)</th><th>Canal</th><th>Sonde</th><th>Horodatage</th>
+              </tr></thead>
+              <tbody id="mesures-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ALERTES ────────────────────────────────────────────────────────── -->
+      <div class="section" id="sec-alertes">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Tableau des alertes</div>
+            <div class="card-badge live" id="alertes-count-badge">— alertes</div>
+          </div>
+          <div class="filter-row" id="filter-niveau">
+            <span style="font-size:11px;font-family:var(--mono);color:var(--text2)">Niveau :</span>
+            <button class="filter-btn active" onclick="filterAlertes('all', this)">Tous</button>
+            <button class="filter-btn" onclick="filterAlertes('critical', this)">Critical</button>
+            <button class="filter-btn" onclick="filterAlertes('warning', this)">Warning</button>
+            <button class="filter-btn" onclick="filterAlertes('info', this)">Info</button>
+          </div>
+          <div class="scroll-body">
+            <table class="data-table" id="alertes-table">
+              <thead><tr>
+                <th>Type</th><th>Description</th><th>Niveau</th><th>Sonde</th><th>Horodatage</th>
+              </tr></thead>
+              <tbody id="alertes-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:14px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Répartition par niveau</div></div>
+            <div style="position:relative;height:200px"><canvas id="alerteNiveauChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Types d'attaque</div></div>
+            <div style="position:relative;height:200px"><canvas id="alerteTypeChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INTERVENTIONS ──────────────────────────────────────────────────── -->
+      <div class="section" id="sec-interventions">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Journal des interventions</div></div>
+            <div class="scroll-body">
+              <div class="timeline" id="timeline-list"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Interventions par sonde</div></div>
+            <div style="position:relative;height:300px"><canvas id="interventionChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SONDES ─────────────────────────────────────────────────────────── -->
+      <div class="section" id="sec-sondes">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header"><div class="card-title">Inventaire des sondes</div></div>
+          <table class="data-table" id="sondes-table">
+            <thead><tr>
+              <th>ID</th><th>Nom</th><th>Localisation</th><th>Déployée le</th><th>Statut</th>
+            </tr></thead>
+            <tbody id="sondes-tbody"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Carte de déploiement</div></div>
+          <div class="sonde-map" style="height:400px">
+            <div class="map-grid"></div>
+            <div id="sonde-map-detail"></div>
+            <div class="map-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Sonde active</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--text3)"></div>Hors ligne</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── IMPORT ─────────────────────────────────────────────────────────── -->
+      <div class="section" id="sec-import">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header"><div class="card-title">Importer des données CSV</div></div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6">
+            Importez votre fichier CSV exporté depuis <code style="font-family:var(--mono);color:var(--accent);background:rgba(0,230,180,0.1);padding:2px 6px;border-radius:4px">sondedb</code>.
+            Le dashboard détecte automatiquement les tables <b>alerte</b>, <b>intervention</b>, <b>mesure</b>, <b>reseau_wifi</b> et <b>sonde</b>.
+          </p>
+          <label class="upload-zone" for="file-input-main">
+            <input type="file" id="file-input-main" accept=".csv" onchange="handleFile(this)">
+            <div class="upload-icon">⬆</div>
+            <div class="upload-text">Glissez votre fichier CSV ici ou cliquez</div>
+            <div class="upload-sub">Format : export sondedb.csv — tables concaténées</div>
+          </label>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Schéma attendu</div></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
+              <div style="font-size:11px;font-family:var(--mono);color:var(--accent);margin-bottom:8px;font-weight:600">● alerte</div>
+              <div style="font-size:11px;color:var(--text2);font-family:var(--mono);line-height:2">id<br>id_sonde<br>type_alerte<br>description<br>niveau<br>horodatage</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
+              <div style="font-size:11px;font-family:var(--mono);color:var(--accent2);margin-bottom:8px;font-weight:600">● intervention</div>
+              <div style="font-size:11px;color:var(--text2);font-family:var(--mono);line-height:2">id<br>id_sonde<br>technicien<br>description<br>date_intervention</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
+              <div style="font-size:11px;font-family:var(--mono);color:var(--accent3);margin-bottom:8px;font-weight:600">● mesure</div>
+              <div style="font-size:11px;color:var(--text2);font-family:var(--mono);line-height:2">id<br>id_sonde<br>ssid<br>bssid<br>rssi<br>canal<br>horodatage</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
+              <div style="font-size:11px;font-family:var(--mono);color:var(--warn);margin-bottom:8px;font-weight:600">● reseau_wifi</div>
+              <div style="font-size:11px;color:var(--text2);font-family:var(--mono);line-height:2">id<br>ssid<br>bssid<br>canal<br>date_detection</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
+              <div style="font-size:11px;font-family:var(--mono);color:var(--danger);margin-bottom:8px;font-weight:600">● sonde</div>
+              <div style="font-size:11px;color:var(--text2);font-family:var(--mono);line-height:2">id<br>nom<br>localisation<br>date_deploiement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DÉTAIL SONDE ───────────────────────────────────────────────────── -->
+      <div class="section" id="sec-detail">
+
+        <!--
+          La vidéo scroll-driven est placée dans un wrapper SANS overflow:hidden
+          pour que position:sticky fonctionne correctement sur window scroll.
+        -->
+        <div style="margin-bottom:24px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--card)">
+          <div style="padding:20px 22px 14px">
+            <div class="card-header" style="margin-bottom:6px">
+              <div class="card-title">Schéma de la sonde ESP32</div>
+              <div class="card-badge live">SCROLL ↓</div>
+            </div>
+            <p style="font-size:12px;color:var(--text2);font-family:var(--mono);line-height:1.7">
+              Faites défiler vers le bas pour explorer le schéma de la sonde pas à pas.
+            </p>
+          </div>
+          <div class="video-scroll-container" id="video-scroll-container">
+            <div class="video-sticky-wrap">
+              <div class="video-progress-track">
+                <div class="video-progress-fill" id="video-progress-fill"></div>
+              </div>
+              <video id="sonde-video" muted playsinline preload="auto">
+                <source src="media/Vid%C3%A9o%20Sch%C3%A9ma%20ESP32.mp4" type="video/mp4">
+              </video>
+              <div class="video-scroll-label" id="video-scroll-label">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M4 10l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Scrollez pour avancer dans le schéma
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESP32 Specs -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">
+            <div class="card-title">Carte ESP32 — Spécifications techniques</div>
+            <span class="card-badge live">ESP32-WROOM-32</span>
+          </div>
+          <div class="esp32-specs-grid">
+            <div class="spec-card">
+              <div class="spec-card-title">⬡ Processeur</div>
+              <div class="spec-row"><span class="spec-key">CPU</span><span class="spec-val">Xtensa LX6 dual-core</span></div>
+              <div class="spec-row"><span class="spec-key">Fréquence</span><span class="spec-val">jusqu'à 240 MHz</span></div>
+              <div class="spec-row"><span class="spec-key">Architecture</span><span class="spec-val">32 bits</span></div>
+              <div class="spec-row"><span class="spec-key">Co-proc. ULP</span><span class="spec-val">Oui (ultra-low power)</span></div>
+              <div class="spec-row"><span class="spec-key">FPU</span><span class="spec-val">Virgule flottante hw</span></div>
+            </div>
+            <div class="spec-card">
+              <div class="spec-card-title">◈ Mémoire</div>
+              <div class="spec-row"><span class="spec-key">SRAM</span><span class="spec-val">520 KB</span></div>
+              <div class="spec-row"><span class="spec-key">Flash SPI</span><span class="spec-val">4 MB (externe)</span></div>
+              <div class="spec-row"><span class="spec-key">ROM</span><span class="spec-val">448 KB</span></div>
+              <div class="spec-row"><span class="spec-key">RTC RAM lente</span><span class="spec-val">8 KB</span></div>
+              <div class="spec-row"><span class="spec-key">RTC RAM rapide</span><span class="spec-val">8 KB</span></div>
+            </div>
+            <div class="spec-card">
+              <div class="spec-card-title">◉ Connectivité RF</div>
+              <div class="spec-row"><span class="spec-key">WiFi</span><span class="spec-val">802.11 b/g/n 2.4 GHz</span></div>
+              <div class="spec-row"><span class="spec-key">Débit WiFi</span><span class="spec-val">jusqu'à 150 Mbps</span></div>
+              <div class="spec-row"><span class="spec-key">Bluetooth</span><span class="spec-val">Classic BT 4.2 + BLE</span></div>
+              <div class="spec-row"><span class="spec-key">Modes WiFi</span><span class="spec-val">STA / AP / AP+STA</span></div>
+              <div class="spec-row"><span class="spec-key">Antenne</span><span class="spec-val">PCB intégrée + IPEX</span></div>
+            </div>
+            <div class="spec-card">
+              <div class="spec-card-title">⚡ I/O & Alimentation</div>
+              <div class="spec-row"><span class="spec-key">GPIO</span><span class="spec-val">38 broches</span></div>
+              <div class="spec-row"><span class="spec-key">ADC</span><span class="spec-val">12 bits — 18 canaux</span></div>
+              <div class="spec-row"><span class="spec-key">DAC</span><span class="spec-val">8 bits — 2 canaux</span></div>
+              <div class="spec-row"><span class="spec-key">Tension E/S</span><span class="spec-val">3.3 V (alim. 5V USB)</span></div>
+              <div class="spec-row"><span class="spec-key">Conso. active</span><span class="spec-val">~80 mA (WiFi TX)</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interfaces + Rôle dans SondeDB -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Interfaces disponibles</div></div>
+            <div style="display:flex;flex-wrap:wrap;padding:4px 0">
+              <div class="feature-chip hi">UART ×3</div>
+              <div class="feature-chip hi">SPI ×4</div>
+              <div class="feature-chip hi">I²C ×2</div>
+              <div class="feature-chip hi">I²S ×2</div>
+              <div class="feature-chip hi">PWM (LEDC)</div>
+              <div class="feature-chip hi">Touch ×10</div>
+              <div class="feature-chip blue">CAN 2.0</div>
+              <div class="feature-chip blue">Ethernet MAC</div>
+              <div class="feature-chip blue">SD / MMC</div>
+              <div class="feature-chip blue">RMT (IR)</div>
+              <div class="feature-chip">JTAG debug</div>
+              <div class="feature-chip">Hall sensor</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Rôle de la sonde dans SondeDB</div></div>
+            <div class="timeline" style="margin-top:2px">
+              <div class="timeline-item">
+                <div class="timeline-dot-wrap">
+                  <div class="timeline-dot" style="border-color:var(--accent)"></div>
+                  <div class="timeline-line"></div>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header"><span class="timeline-tech">Scan WiFi passif</span></div>
+                  <div class="timeline-desc">Mode promiscuous sur tous les canaux 2.4 GHz — capture SSID, BSSID et RSSI environnants en continu.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot-wrap">
+                  <div class="timeline-dot" style="border-color:var(--accent2)"></div>
+                  <div class="timeline-line"></div>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header"><span class="timeline-tech" style="color:var(--accent2)">Détection d'anomalies</span></div>
+                  <div class="timeline-desc">Analyse des trames 802.11 pour identifier Evil Twin, Deauth Attack et Rogue AP en temps réel.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot-wrap">
+                  <div class="timeline-dot" style="border-color:var(--accent3)"></div>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header"><span class="timeline-tech" style="color:var(--accent3)">Envoi vers sondedb</span></div>
+                  <div class="timeline-desc">Transmission des mesures via HTTP/JSON → stockage SQL et déclenchement automatique des alertes.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /sec-detail -->
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const DB = {
+  alertes: [],
+  interventions: [],
+  mesures: [],
+  reseaux: [],
+  sondes: []
+};
+
+// ─── Données par défaut ───────────────────────────────────────────────────────
+function loadDefaultData() {
+  DB.alertes = [
+    { id:'1', id_sonde:'1', type_alerte:'Evil Twin',     description:'SSID dupliqué détecté sur canal 11',     niveau:'critical', horodatage:'2026-03-05 10:30:37' },
+    { id:'2', id_sonde:'1', type_alerte:'Deauth Attack', description:'Paquets deauth massifs détectés',        niveau:'critical', horodatage:'2026-03-06 08:15:22' },
+    { id:'3', id_sonde:'1', type_alerte:'Rogue AP',      description:"Point d'accès non autorisé détecté",    niveau:'warning',  horodatage:'2026-03-07 14:42:10' },
+    { id:'4', id_sonde:'2', type_alerte:'Signal faible', description:'RSSI inférieur à -80 dBm',              niveau:'info',     horodatage:'2026-03-08 09:00:00' },
+  ];
+  DB.interventions = [
+    { id:'1', id_sonde:'1', technicien:'Dupont', description:'Suppression AP fantôme détecté sur canal 11',       date_intervention:'2026-03-05 14:00:00' },
+    { id:'2', id_sonde:'1', technicien:'Martin', description:'Analyse trafic réseau suite attaque deauth',         date_intervention:'2026-03-06 10:30:00' },
+    { id:'3', id_sonde:'2', technicien:'Dupont', description:'Remplacement antenne sonde EST',                     date_intervention:'2026-03-08 11:00:00' },
+  ];
+  DB.mesures = [
+    { id:'1', id_sonde:'1', ssid:'Orange-Test',    bssid:'AA:BB:CC:DD:EE:FF', rssi:'-65', canal:'6',  horodatage:'2026-03-05 10:30:37' },
+    { id:'2', id_sonde:'1', ssid:'Livebox-BTS',    bssid:'11:22:33:44:55:66', rssi:'-72', canal:'1',  horodatage:'2026-03-05 10:31:00' },
+    { id:'3', id_sonde:'1', ssid:'DIRECT-Samsung', bssid:'AA:11:BB:22:CC:33', rssi:'-58', canal:'11', horodatage:'2026-03-05 10:32:00' },
+    { id:'4', id_sonde:'2', ssid:'Orange-Test',    bssid:'AA:BB:CC:DD:EE:FF', rssi:'-80', canal:'6',  horodatage:'2026-03-06 09:00:00' },
+    { id:'5', id_sonde:'2', ssid:'TP-Link_Lab',    bssid:'AA:BB:00:11:22:33', rssi:'-70', canal:'11', horodatage:'2026-03-06 09:01:00' },
+    { id:'6', id_sonde:'1', ssid:'SFR-wifi',       bssid:'CC:DD:EE:FF:00:11', rssi:'-75', canal:'13', horodatage:'2026-03-07 08:00:00' },
+  ];
+  DB.reseaux = [
+    { id:'1', ssid:'Orange-Test',    bssid:'AA:BB:CC:DD:EE:FF', canal:'6',  date_detection:'2026-03-05 10:30:37' },
+    { id:'2', ssid:'Livebox-BTS',    bssid:'11:22:33:44:55:66', canal:'1',  date_detection:'2026-03-05 10:31:00' },
+    { id:'3', ssid:'DIRECT-Samsung', bssid:'AA:11:BB:22:CC:33', canal:'11', date_detection:'2026-03-05 10:32:00' },
+    { id:'4', ssid:'TP-Link_Lab',    bssid:'AA:BB:00:11:22:33', canal:'11', date_detection:'2026-03-06 09:01:00' },
+    { id:'5', ssid:'SFR-wifi',       bssid:'CC:DD:EE:FF:00:11', canal:'13', date_detection:'2026-03-07 08:00:00' },
+  ];
+  DB.sondes = [
+    { id:'1', nom:'ESP32-001', localisation:'Laboratoire BTS CIEL',  date_deploiement:'2026-03-05 10:30:37' },
+    { id:'2', nom:'ESP32-002', localisation:'Salle Réseau 204',       date_deploiement:'2026-03-06 08:00:00' },
+  ];
+}
+
+// ─── CSV Parser ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const tables = { alertes:[], interventions:[], mesures:[], reseaux:[], sondes:[] };
+  const lines = text.trim().split('\n');
+  let currentTable = null;
+  let headers = [];
+
+  const tableMap = {
+    'id,id_sonde,type_alerte,description,niveau,horodatage': 'alertes',
+    'id,id_sonde,technicien,description,date_intervention':  'interventions',
+    'id,id_sonde,ssid,bssid,rssi,canal,horodatage':          'mesures',
+    'id,ssid,bssid,canal,date_detection':                    'reseaux',
+    'id,nom,localisation,date_deploiement':                  'sondes',
+  };
+
+  for (const line of lines) {
+    const clean = line.replace(/"/g,'').trim();
+    if (!clean) continue;
+    const cols = clean.split(',');
+    const key = cols.join(',');
+    if (tableMap[key]) { currentTable = tableMap[key]; headers = cols; continue; }
+    if (currentTable && cols.length === headers.length) {
+      const row = {};
+      headers.forEach((h,i) => row[h] = cols[i]);
+      tables[currentTable].push(row);
+    }
+  }
+  if (tables.alertes.length)       DB.alertes       = tables.alertes;
+  if (tables.interventions.length) DB.interventions = tables.interventions;
+  if (tables.mesures.length)       DB.mesures       = tables.mesures;
+  if (tables.reseaux.length)       DB.reseaux       = tables.reseaux;
+  if (tables.sondes.length)        DB.sondes        = tables.sondes;
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    parseCSV(e.target.result);
+    renderAll();
+    document.getElementById('import-banner').style.display = 'flex';
+    document.getElementById('import-info-text').textContent =
+      `✓ ${file.name} importé — ${DB.mesures.length} mesures, ${DB.alertes.length} alertes, ${DB.sondes.length} sondes`;
+  };
+  reader.readAsText(file);
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+const titles = {
+  overview:      'Vue générale',
+  spectrum:      'Spectre WiFi',
+  alertes:       'Alertes',
+  interventions: 'Interventions',
+  sondes:        'Sondes',
+  import:        'Import données',
+  detail:        'Détail de la sonde',
+};
+
+function showSection(id, el) {
+  // Remonte en haut pour que le scroll-scrubbing vidéo parte de 0
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('page-title').textContent = titles[id] || id;
+}
+
+// ─── Render All ───────────────────────────────────────────────────────────────
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderAll() {
+  updateKPIs();
+  renderCanalGrid();
+  renderAlertesMini();
+  renderRSSIList();
+  renderSondeMap('sonde-map-nodes');
+  renderSondeMap('sonde-map-detail');
+  renderSpectrumChart();
+  renderCanalPie();
+  renderRSSIHist();
+  renderMesuresTable();
+  renderAlertesTable();
+  renderAlertesCharts();
+  renderTimeline();
+  renderInterventionChart();
+  renderSondesTable();
+  updateBadgeAlertes();
+  updateTime();
+}
+
+function updateKPIs() {
+  document.getElementById('kpi-sondes').textContent  = DB.sondes.length;
+  document.getElementById('kpi-reseaux').textContent = DB.reseaux.length;
+  document.getElementById('kpi-mesures').textContent = DB.mesures.length;
+  document.getElementById('kpi-alertes').textContent = DB.alertes.length;
+}
+
+function updateBadgeAlertes() {
+  const n = DB.alertes.filter(a => a.niveau === 'critical').length;
+  const b = document.getElementById('badge-alertes');
+  b.textContent = n;
+  b.style.display = n > 0 ? '' : 'none';
+  document.getElementById('alertes-count-badge').textContent = DB.alertes.length + ' alertes';
+}
+
+function updateTime() {
+  const now = new Date();
+  const s = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR');
+  document.getElementById('topbar-time').textContent  = s;
+  document.getElementById('last-update').textContent  = now.toLocaleTimeString('fr-FR');
+}
+
+// ─── Canal Grid ───────────────────────────────────────────────────────────────
+function renderCanalGrid() {
+  const grid = document.getElementById('canal-grid');
+  const alertCanals = new Set(DB.alertes.map(a => {
+    const m = DB.mesures.find(m => m.id_sonde === a.id_sonde);
+    return m ? m.canal : null;
+  }).filter(Boolean));
+  const canalCount = {};
+  DB.mesures.forEach(m => { canalCount[m.canal] = (canalCount[m.canal] || 0) + 1; });
+  const maxCount = Math.max(...Object.values(canalCount), 1);
+  grid.innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12,13].map(c => {
+    const count = canalCount[c] || 0;
+    const h = count ? Math.max(20, Math.round((count / maxCount) * 160)) : 8;
+    const isAlert = alertCanals.has(String(c));
+    return `<div class="canal-bar-wrap">
+      <div class="canal-bar ${isAlert ? 'active' : ''}" style="height:${h}px" title="Canal ${c}: ${count} réseau(x)"
+        onmouseover="showTooltip(event,'Canal ${c} — ${count} réseau(x)${isAlert ? ' ⚠ Alerte' : ''}')"
+        onmouseout="hideTooltip()"></div>
+      <div class="canal-label">${c}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Alertes mini ─────────────────────────────────────────────────────────────
+function renderAlertesMini() {
+  const list = document.getElementById('alertes-mini-list');
+  if (!DB.alertes.length) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:16px;text-align:center;font-family:var(--mono)">Aucune alerte</div>';
+    return;
+  }
+  list.innerHTML = DB.alertes.slice(0, 8).map(a => `
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <span class="badge ${a.niveau}">${a.niveau}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text);font-family:var(--mono)">${a.type_alerte}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.description}</div>
+      </div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--text3);white-space:nowrap;margin-top:2px">${a.horodatage.split(' ')[0]}</div>
+    </div>
+  `).join('');
+}
+
+// ─── RSSI List ────────────────────────────────────────────────────────────────
+function renderRSSIList() {
+  const el = document.getElementById('rssi-list');
+  if (!DB.mesures.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:16px;font-family:var(--mono)">Aucune mesure</div>';
+    return;
+  }
+  const unique = {};
+  DB.mesures.forEach(m => { if (!unique[m.ssid]) unique[m.ssid] = m; });
+  el.innerHTML = Object.values(unique).slice(0, 8).map(m => {
+    const rssi  = parseInt(m.rssi);
+    const pct   = Math.max(0, Math.min(100, ((rssi + 100) / 70) * 100));
+    const color = rssi > -60 ? '#00e6b4' : rssi > -75 ? '#ffb830' : '#ff4d6d';
+    return `<div class="rssi-row">
+      <div class="rssi-ssid">${m.ssid}</div>
+      <div class="rssi-bar-track"><div class="rssi-bar-fill" style="width:${pct.toFixed(0)}%;background:${color}"></div></div>
+      <div class="rssi-val" style="color:${color}">${m.rssi} dBm</div>
+      <div class="rssi-canal">ch${m.canal}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Sonde Map ────────────────────────────────────────────────────────────────
+const sondePositions = [
+  {top:'42%',left:'38%'},{top:'65%',left:'62%'},{top:'30%',left:'70%'},
+  {top:'55%',left:'25%'},{top:'75%',left:'45%'},{top:'20%',left:'50%'},
+];
+function renderSondeMap(containerId) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = DB.sondes.map((s, i) => {
+    const pos = sondePositions[i % sondePositions.length];
+    const hasAlert = DB.alertes.some(a => a.id_sonde === s.id && a.niveau === 'critical');
+    const color = hasAlert ? 'var(--danger)' : 'var(--accent)';
+    return `<div class="sonde-node" style="top:${pos.top};left:${pos.left}">
+      <div class="sonde-ring" style="border-color:${color}">
+        <div class="sonde-dot" style="background:${color};box-shadow:0 0 8px ${color}"></div>
+      </div>
+      <div class="sonde-label" style="color:${color}">${s.nom}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Spectrum Chart ───────────────────────────────────────────────────────────
+function renderSpectrumChart() {
+  destroyChart('spectrum');
+  const canalData = {};
+  DB.mesures.forEach(m => {
+    const c = parseInt(m.canal);
+    if (!canalData[c]) canalData[c] = [];
+    canalData[c].push(parseInt(m.rssi));
+  });
+  const labels = Array.from({length: 13}, (_, i) => i + 1);
+  const data   = labels.map(c => { const v = canalData[c]; return v ? Math.max(...v) : -100; });
+  const alertCanals = new Set(DB.alertes.map(a => {
+    const m = DB.mesures.find(m => m.id_sonde === a.id_sonde);
+    return m ? parseInt(m.canal) : null;
+  }).filter(Boolean));
+  const colors = data.map((v, i) =>
+    alertCanals.has(i + 1) ? 'rgba(255,77,109,0.8)' : v > -100 ? 'rgba(0,152,240,0.7)' : 'rgba(255,255,255,0.05)'
+  );
+  charts['spectrum'] = new Chart(document.getElementById('spectrumChart'), {
+    type: 'bar',
+    data: {
+      labels: labels.map(l => 'Ch ' + l),
+      datasets: [{
+        label: 'RSSI max (dBm)', data,
+        backgroundColor: colors,
+        borderColor: colors.map(c => c.replace('0.7','1').replace('0.8','1')),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min:-110, max:-30, grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } },
+        x: { grid:{ display:false }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } }
+      }
+    }
+  });
+}
+
+// ─── Canal Pie ────────────────────────────────────────────────────────────────
+function renderCanalPie() {
+  destroyChart('canalPie');
+  const counts = {};
+  DB.mesures.forEach(m => { counts['ch' + m.canal] = (counts['ch' + m.canal] || 0) + 1; });
+  const palettes = ['#00e6b4','#0098f0','#f0a500','#ff4d6d','#a855f7','#ec4899','#22d3ee','#84cc16'];
+  const labels = Object.keys(counts);
+  charts['canalPie'] = new Chart(document.getElementById('canalPieChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: Object.values(counts), backgroundColor: palettes.slice(0, labels.length), borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'right', labels: { color:'#8892a4', font:{family:'JetBrains Mono',size:10}, boxWidth:10, padding:8 } } }
+    }
+  });
+}
+
+// ─── RSSI Hist ────────────────────────────────────────────────────────────────
+function renderRSSIHist() {
+  destroyChart('rssiHist');
+  const ssids = [...new Set(DB.mesures.map(m => m.ssid))].slice(0, 4);
+  const palettes = ['#00e6b4','#0098f0','#f0a500','#ff4d6d'];
+  const datasets = ssids.map((s, i) => ({
+    label: s,
+    data: DB.mesures.filter(m => m.ssid === s).map(m => parseInt(m.rssi)),
+    borderColor: palettes[i], backgroundColor: palettes[i] + '22',
+    tension: 0.4, fill: false, pointRadius: 3,
+  }));
+  const maxPts = Math.max(...datasets.map(d => d.data.length));
+  charts['rssiHist'] = new Chart(document.getElementById('rssiHistChart'), {
+    type: 'line',
+    data: { labels: Array.from({length: maxPts}, (_, i) => 'M' + (i + 1)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color:'#8892a4', font:{family:'JetBrains Mono',size:10}, boxWidth:10 } } },
+      scales: {
+        y: { min:-100, max:-40, grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } },
+        x: { grid:{ display:false }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } }
+      }
+    }
+  });
+}
+
+// ─── Mesures Table ────────────────────────────────────────────────────────────
+function renderMesuresTable() {
+  document.getElementById('mesures-tbody').innerHTML = DB.mesures.map(m => {
+    const rssi  = parseInt(m.rssi);
+    const color = rssi > -60 ? 'var(--ok)' : rssi > -75 ? 'var(--warn)' : 'var(--danger)';
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--accent)">${m.ssid}</td>
+      <td style="font-family:var(--mono);color:var(--text2);font-size:11px">${m.bssid}</td>
+      <td style="font-family:var(--mono);color:${color}">${m.rssi} dBm</td>
+      <td style="font-family:var(--mono)">${m.canal}</td>
+      <td>${DB.sondes.find(s => s.id === m.id_sonde)?.nom || 'S' + m.id_sonde}</td>
+      <td style="font-family:var(--mono);color:var(--text2);font-size:11px">${m.horodatage}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Alertes Table ────────────────────────────────────────────────────────────
+let alerteFilter = 'all';
+function filterAlertes(f, btn) {
+  alerteFilter = f;
+  document.querySelectorAll('#filter-niveau .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAlertesTable();
+}
+function renderAlertesTable() {
+  const filtered = alerteFilter === 'all' ? DB.alertes : DB.alertes.filter(a => a.niveau === alerteFilter);
+  document.getElementById('alertes-tbody').innerHTML = filtered.map(a => {
+    const sonde = DB.sondes.find(s => s.id === a.id_sonde);
+    return `<tr>
+      <td style="font-family:var(--mono);font-weight:600;color:var(--text)">${a.type_alerte}</td>
+      <td style="color:var(--text2)">${a.description}</td>
+      <td><span class="badge ${a.niveau}">${a.niveau}</span></td>
+      <td style="font-family:var(--mono);color:var(--accent)">${sonde?.nom || 'Sonde ' + a.id_sonde}</td>
+      <td style="font-family:var(--mono);color:var(--text2);font-size:11px">${a.horodatage}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Alertes Charts ───────────────────────────────────────────────────────────
+function renderAlertesCharts() {
+  destroyChart('alerteNiveau');
+  destroyChart('alerteType');
+  const niveaux = {};
+  DB.alertes.forEach(a => { niveaux[a.niveau] = (niveaux[a.niveau] || 0) + 1; });
+  const nColors = { critical:'#ff4d6d', warning:'#ffb830', info:'#0098f0', ok:'#00e6b4' };
+  charts['alerteNiveau'] = new Chart(document.getElementById('alerteNiveauChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(niveaux), datasets: [{ data: Object.values(niveaux), backgroundColor: Object.keys(niveaux).map(k => nColors[k] || '#888'), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'right', labels: { color:'#8892a4', font:{family:'JetBrains Mono',size:10}, boxWidth:10 } } }
+    }
+  });
+  const types = {};
+  DB.alertes.forEach(a => { types[a.type_alerte] = (types[a.type_alerte] || 0) + 1; });
+  charts['alerteType'] = new Chart(document.getElementById('alerteTypeChart'), {
+    type: 'bar',
+    data: { labels: Object.keys(types), datasets: [{ data: Object.values(types), backgroundColor: 'rgba(255,77,109,0.7)', borderRadius: 4, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } },
+        y: { grid:{ display:false }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } }
+      }
+    }
+  });
+}
+
+// ─── Timeline ─────────────────────────────────────────────────────────────────
+function renderTimeline() {
+  const el = document.getElementById('timeline-list');
+  if (!DB.interventions.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:16px;font-family:var(--mono)">Aucune intervention enregistrée</div>';
+    return;
+  }
+  el.innerHTML = DB.interventions.map((iv, i) => {
+    const sonde = DB.sondes.find(s => s.id === iv.id_sonde);
+    const last  = i === DB.interventions.length - 1;
+    return `<div class="timeline-item">
+      <div class="timeline-dot-wrap">
+        <div class="timeline-dot"></div>
+        ${!last ? '<div class="timeline-line"></div>' : ''}
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-header">
+          <span class="timeline-tech">${iv.technicien}</span>
+          <span class="timeline-date">${iv.date_intervention?.split(' ')[0] || ''}</span>
+        </div>
+        <div class="timeline-desc">${iv.description}</div>
+        <div class="timeline-sonde">Sonde : ${sonde?.nom || 'Sonde ' + iv.id_sonde} — ${sonde?.localisation || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Intervention Chart ───────────────────────────────────────────────────────
+function renderInterventionChart() {
+  destroyChart('intervention');
+  const bySonde = {};
+  DB.interventions.forEach(iv => {
+    const sonde = DB.sondes.find(s => s.id === iv.id_sonde);
+    const label = sonde?.nom || 'S' + iv.id_sonde;
+    bySonde[label] = (bySonde[label] || 0) + 1;
+  });
+  charts['intervention'] = new Chart(document.getElementById('interventionChart'), {
+    type: 'bar',
+    data: { labels: Object.keys(bySonde), datasets: [{ data: Object.values(bySonde), backgroundColor: 'rgba(0,152,240,0.7)', borderRadius: 6, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10}, stepSize:1 } },
+        x: { grid:{ display:false }, ticks:{ color:'#8892a4', font:{family:'JetBrains Mono',size:10} } }
+      }
+    }
+  });
+}
+
+// ─── Sondes Table ─────────────────────────────────────────────────────────────
+function renderSondesTable() {
+  document.getElementById('sondes-tbody').innerHTML = DB.sondes.map(s => {
+    const hasAlert = DB.alertes.some(a => a.id_sonde === s.id && a.niveau === 'critical');
+    const badge = hasAlert
+      ? '<span class="badge critical">Alerte</span>'
+      : '<span class="badge ok">Actif</span>';
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--text2)">${s.id}</td>
+      <td style="font-family:var(--mono);font-weight:600;color:var(--accent)">${s.nom}</td>
+      <td>${s.localisation}</td>
+      <td style="font-family:var(--mono);color:var(--text2);font-size:11px">${s.date_deploiement}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Tooltip ──────────────────────────────────────────────────────────────────
+function showTooltip(e, text) {
+  const t = document.getElementById('tooltip');
+  t.textContent = text;
+  t.style.display = 'block';
+  t.style.left = (e.clientX + 12) + 'px';
+  t.style.top  = (e.clientY - 28) + 'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+document.addEventListener('mousemove', e => {
+  const t = document.getElementById('tooltip');
+  if (t.style.display === 'block') {
+    t.style.left = (e.clientX + 12) + 'px';
+    t.style.top  = (e.clientY - 28) + 'px';
+  }
+});
+
+// ─── Clock ────────────────────────────────────────────────────────────────────
+setInterval(updateTime, 1000);
+
+// ─── Video Scrubbing (scroll-driven) ─────────────────────────────────────────
+function initVideoScrubbing() {
+  const video     = document.getElementById('sonde-video');
+  const container = document.getElementById('video-scroll-container');
+  const fill      = document.getElementById('video-progress-fill');
+  const label     = document.getElementById('video-scroll-label');
+  if (!video || !container) return;
+
+  video.pause();
+
+  function scrub() {
+    const section = document.getElementById('sec-detail');
+    if (!section || !section.classList.contains('active')) return;
+
+    const rect       = container.getBoundingClientRect();
+    const scrollable = container.offsetHeight - window.innerHeight;
+    if (scrollable <= 0) return;
+
+    const scrolled  = Math.max(0, -rect.top);
+    const progress  = Math.min(1, scrolled / scrollable);
+
+    if (video.readyState >= 1 && video.duration) {
+      video.currentTime = progress * video.duration;
+    }
+    if (fill)  fill.style.width = (progress * 100).toFixed(2) + '%';
+    if (label) label.style.opacity = progress > 0.02 ? '0' : '1';
+  }
+
+  window.addEventListener('scroll', scrub, { passive: true });
+  video.addEventListener('loadedmetadata', scrub);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadDefaultData();
+renderAll();
+initVideoScrubbing();
+</script>
+<script src="js/live-data.js"></script>
+</body>
+</html>

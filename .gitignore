@@ -1,0 +1,14 @@
+# Environnement Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables d'environnement (contient des mots de passe)
+.env
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
