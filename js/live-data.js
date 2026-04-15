@@ -103,6 +103,7 @@
     DB.mesures = normalized.mesures;
     DB.reseaux = normalized.reseaux;
     DB.sondes = normalized.sondes;
+    window._liveDataReceived = true;  // Déverrouille l'affichage des vrais compteurs
     renderAll();
     state.hasLiveData = true;
 

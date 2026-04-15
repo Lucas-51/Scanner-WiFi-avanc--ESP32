@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import binascii
+import hashlib
+import hmac
 import json
 import os
 import re
+import secrets
 import threading
 from datetime import datetime
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR / ".env"
-SCHEMA_PATH = BASE_DIR / "sql" / "schema.mysql.sql"
+SCHEMA_PATH = BASE_DIR / "sql" / "sondedb.sql"
+USERS_SCHEMA_PATH = BASE_DIR / "sql" / "users.sql"
 SCHEMA_READY = False
 SCHEMA_LOCK = threading.Lock()
 
@@ -70,6 +75,66 @@ CONFIG = {
     "dashboard_intervention_limit": get_setting_int("DASHBOARD_INTERVENTIONS_LIMIT", 50),
 }
 
+
+
+
+# ── Gestion des sessions ──────────────────────────────────────────────────────
+# token (str) → username (str)
+SESSIONS: dict[str, str] = {}
+SESSION_COOKIE = "sondedb_session"
+
+def verify_password(stored_hash: str, password: str) -> bool:
+    """Vérifie un mot de passe PBKDF2:sha256."""
+    try:
+        algo, params = stored_hash.split("$", 1)
+        # format: pbkdf2:sha256:iterations$salt_hex$hash_hex
+        parts = stored_hash.split("$")
+        # parts[0] = "pbkdf2:sha256:200000", parts[1] = salt_hex, parts[2] = hash_hex
+        prefix = parts[0]  # "pbkdf2:sha256:200000"
+        salt_hex = parts[1]
+        hash_hex = parts[2]
+        _, hash_name, iterations_str = prefix.split(":")
+        iterations = int(iterations_str)
+        salt = binascii.unhexlify(salt_hex)
+        expected = binascii.unhexlify(hash_hex)
+        dk = hashlib.pbkdf2_hmac(hash_name, password.encode("utf-8"), salt, iterations)
+        return hmac.compare_digest(dk, expected)
+    except Exception:
+        return False
+
+
+def get_session_user(cookie_header: str) -> str | None:
+    """Extrait le nom d'utilisateur depuis le cookie de session."""
+    if not cookie_header:
+        return None
+    for part in cookie_header.split(";"):
+        part = part.strip()
+        if part.startswith(SESSION_COOKIE + "="):
+            token = part[len(SESSION_COOKIE) + 1:]
+            return SESSIONS.get(token)
+    return None
+
+
+def check_user_credentials(username: str, password: str) -> bool:
+    """Vérifie les identifiants dans la table users."""
+    ensure_schema()
+    connection = get_connection(with_database=True)
+    try:
+        cursor = connection.cursor()
+        try:
+            cursor.execute(
+                "SELECT password_hash FROM users WHERE username = %s LIMIT 1",
+                (username,),
+            )
+            row = cursor.fetchone()
+        finally:
+            cursor.close()
+    finally:
+        connection.close()
+
+    if not row:
+        return False
+    return verify_password(row["password_hash"], password)
 
 def now_sql() -> str:
     return datetime.now().replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
@@ -275,6 +340,23 @@ def ensure_schema() -> None:
         finally:
             connection.close()
 
+        # Applique le schéma users si présent
+        if USERS_SCHEMA_PATH.exists():
+            stmts2 = iter_sql_statements(USERS_SCHEMA_PATH.read_text(encoding="utf-8"))
+            conn2 = get_connection(with_database=True)
+            try:
+                cur2 = conn2.cursor()
+                try:
+                    for s in stmts2:
+                        try:
+                            cur2.execute(s)
+                        except Exception:
+                            pass
+                    conn2.commit()
+                finally:
+                    cur2.close()
+            finally:
+                conn2.close()
         SCHEMA_READY = True
 
 
@@ -296,7 +378,7 @@ def build_dashboard_payload() -> dict[str, Any]:
                     id,
                     name AS nom,
                     location AS localisation,
-                    DATE_FORMAT(deploy_date, '%Y-%m-%d %H:%i:%s') AS date_deploiement
+                    DATE_FORMAT(deploy_date, '%%Y-%%m-%%d %%H:%%i:%%s') AS date_deploiement
                 FROM probes
                 ORDER BY name ASC
                 """,
@@ -315,7 +397,7 @@ def build_dashboard_payload() -> dict[str, Any]:
                         WHEN severity = 'medium' THEN 'warning'
                         ELSE 'info'
                     END AS niveau,
-                    DATE_FORMAT(timestamp, '%Y-%m-%d %H:%i:%s') AS horodatage
+                    DATE_FORMAT(timestamp, '%%Y-%%m-%%d %%H:%%i:%%s') AS horodatage
                 FROM alerts
                 ORDER BY timestamp DESC
                 LIMIT %s
@@ -330,7 +412,7 @@ def build_dashboard_payload() -> dict[str, Any]:
                     probe_id AS id_sonde,
                     technician AS technicien,
                     description,
-                    DATE_FORMAT(intervention_date, '%Y-%m-%d %H:%i:%s') AS date_intervention
+                    DATE_FORMAT(intervention_date, '%%Y-%%m-%%d %%H:%%i:%%s') AS date_intervention
                 FROM interventions
                 ORDER BY intervention_date DESC
                 LIMIT %s
@@ -349,7 +431,7 @@ def build_dashboard_payload() -> dict[str, Any]:
                         bssid,
                         rssi,
                         channel AS canal,
-                        DATE_FORMAT(timestamp, '%Y-%m-%d %H:%i:%s') AS horodatage
+                        DATE_FORMAT(timestamp, '%%Y-%%m-%%d %%H:%%i:%%s') AS horodatage
                     FROM measurements
                     ORDER BY timestamp DESC
                     LIMIT %s
@@ -366,7 +448,7 @@ def build_dashboard_payload() -> dict[str, Any]:
                     ssid,
                     bssid,
                     channel AS canal,
-                    DATE_FORMAT(first_seen, '%Y-%m-%d %H:%i:%s') AS date_detection
+                    DATE_FORMAT(first_seen, '%%Y-%%m-%%d %%H:%%i:%%s') AS date_detection
                 FROM wifi_networks
                 ORDER BY first_seen DESC
                 LIMIT %s
@@ -627,18 +709,33 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        user = get_session_user(self.headers.get("Cookie", ""))
 
         if parsed.path == "/api/health":
             return self.handle_health()
+        if parsed.path == "/api/logout":
+            return self.handle_logout()
+        if parsed.path == "/login":
+            self.path = "/login.html"
+            return super().do_GET()
         if parsed.path == "/api/dashboard":
+            if not user:
+                return self.send_api_error(HTTPStatus.UNAUTHORIZED, "Session expirée. Reconnectez-vous.")
             return self.handle_dashboard()
         if parsed.path == "/":
+            if not user:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
             self.path = "/sondedb_dashboard.html"
 
         return super().do_GET()
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/login":
+            return self.handle_login()
         if parsed.path == "/api/ingest":
             return self.handle_ingest()
         self.send_api_error(HTTPStatus.NOT_FOUND, "Point d'entrée API introuvable.")
@@ -665,6 +762,56 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
         payload_token = normalize_text(payload.get("token"))
 
         return expected in {header_token, bearer_token, payload_token}
+
+    def handle_login(self) -> None:
+        length = normalize_int(self.headers.get("Content-Length"), 0)
+        raw = self.rfile.read(length) if length > 0 else b""
+        try:
+            params = parse_qs(raw.decode("utf-8"))
+            username = normalize_text(params.get("username", [""])[0])
+            password = normalize_text(params.get("password", [""])[0])
+        except Exception:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, "Paramètres invalides.")
+
+        if not username or not password:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, "Identifiant et mot de passe requis.")
+
+        try:
+            ok = check_user_credentials(username, password)
+        except Exception as exc:
+            return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+
+        if not ok:
+            return self.send_api_error(HTTPStatus.UNAUTHORIZED, "Identifiant ou mot de passe incorrect.")
+
+        token = secrets.token_hex(32)
+        SESSIONS[token] = username
+        body = compact_json({"status": "ok", "username": username})
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header(
+            "Set-Cookie",
+            f"{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Strict"
+        )
+        self.send_cors_headers()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_logout(self) -> None:
+        cookie = self.headers.get("Cookie", "")
+        for part in cookie.split(";"):
+            part = part.strip()
+            if part.startswith(SESSION_COOKIE + "="):
+                token = part[len(SESSION_COOKIE) + 1:]
+                SESSIONS.pop(token, None)
+        self.send_response(HTTPStatus.FOUND)
+        self.send_header("Location", "/login")
+        self.send_header(
+            "Set-Cookie",
+            f"{SESSION_COOKIE}=; Path=/; HttpOnly; Max-Age=0"
+        )
+        self.end_headers()
 
     def handle_health(self) -> None:
         try:

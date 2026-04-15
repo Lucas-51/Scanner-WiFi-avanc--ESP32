@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SondeDB — Connexion</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #040404; --bg2: #080808; --card: #0d0d0d;
+  --text: #f0f0f0; --dim: rgba(240,240,240,0.38); --line: rgba(240,240,240,0.09);
+  --accent: #c8ff00; --danger: #ff2d2d; --ok: #00e676;
+  --mono: 'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--mono); font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow: hidden;
+}
+
+/* Grille de fond animée */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(200,255,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,255,0,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: grid-drift 20s linear infinite;
+}
+@keyframes grid-drift { 0%{background-position:0 0} 100%{background-position:40px 40px} }
+
+.wrap {
+  position: relative; z-index: 1;
+  width: 380px;
+}
+
+/* Header */
+.brand { text-align: center; margin-bottom: 40px; }
+.brand-mark {
+  font-size: 11px; font-weight: 700; letter-spacing: 6px;
+  text-transform: uppercase; color: var(--text);
+}
+.brand-sub { font-size: 8px; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+.brand-sep {
+  display: flex; align-items: center; gap: 12px; margin: 18px 0 0;
+}
+.brand-sep-line { flex: 1; height: 1px; background: var(--line); }
+.brand-sep-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); flex-shrink: 0; }
+
+/* Card */
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  padding: 32px;
+}
+
+.card-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 28px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.card-header-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px var(--ok); animation: blink 1.6s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.card-header-title { font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--text); }
+.card-header-sub { font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); margin-left: auto; }
+
+/* Form */
+.field { margin-bottom: 18px; }
+.field-label {
+  display: block; font-size: 8px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--dim);
+  margin-bottom: 8px;
+}
+.field-input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--line);
+  color: var(--text); font-family: var(--mono); font-size: 11px;
+  padding: 10px 12px; outline: none;
+  transition: border-color .15s;
+}
+.field-input:focus { border-color: rgba(200,255,0,0.4); }
+.field-input::placeholder { color: rgba(240,240,240,0.18); }
+
+.btn {
+  width: 100%; background: transparent; border: 1px solid var(--accent);
+  color: var(--accent); font-family: var(--mono); font-size: 9px;
+  font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+  padding: 12px; cursor: pointer; transition: background .15s, color .15s;
+  margin-top: 8px;
+}
+.btn:hover { background: var(--accent); color: var(--bg); }
+.btn:active { opacity: .8; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.error-box {
+  display: none; background: rgba(255,45,45,0.08); border: 1px solid rgba(255,45,45,0.3);
+  color: var(--danger); font-size: 9px; letter-spacing: 1px;
+  padding: 10px 12px; margin-top: 16px; text-align: center;
+}
+.error-box.show { display: block; }
+
+/* Footer */
+.foot {
+  margin-top: 20px; display: flex; justify-content: space-between;
+  font-size: 8px; color: var(--dim); letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-mark">SondeDB</div>
+    <div class="brand-sub">WiFi Monitor · Orange BTS CIEL</div>
+    <div class="brand-sep">
+      <div class="brand-sep-line"></div>
+      <div class="brand-sep-dot"></div>
+      <div class="brand-sep-line"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-dot"></div>
+      <div class="card-header-title">Authentification</div>
+      <div class="card-header-sub">Accès sécurisé</div>
+    </div>
+
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="field">
+        <label class="field-label" for="username">Identifiant</label>
+        <input class="field-input" type="text" id="username" name="username"
+               placeholder="admin" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="password">Mot de passe</label>
+        <input class="field-input" type="password" id="password" name="password"
+               placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+      <button class="btn" type="submit" id="btn-login">Connexion</button>
+      <div class="error-box" id="error-box">Identifiant ou mot de passe incorrect</div>
+    </form>
+  </div>
+
+  <div class="foot">
+    <span>ESP32-WROOM-32 · Analyse RF</span>
+    <span id="login-time">—</span>
+  </div>
+</div>
+
+<script>
+setInterval(() => {
+  document.getElementById('login-time').textContent =
+    new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}, 1000);
+
+async function doLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-login');
+  const err = document.getElementById('error-box');
+  btn.disabled = true;
+  btn.textContent = 'Connexion…';
+  err.classList.remove('show');
+
+  const body = new URLSearchParams({
+    username: document.getElementById('username').value.trim(),
+    password: document.getElementById('password').value,
+  });
+
+  try {
+    const res = await fetch('/api/login', { method: 'POST', body, credentials: 'same-origin' });
+    const data = await res.json();
+    if (res.ok && data.status === 'ok') {
+      window.location.href = '/';
+    } else {
+      err.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Connexion';
+    }
+  } catch {
+    err.textContent = 'Erreur réseau — serveur inaccessible';
+    err.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Connexion';
+  }
+}
+</script>
+</body>
+</html>

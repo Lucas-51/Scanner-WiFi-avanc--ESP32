@@ -51,3 +51,22 @@ CREATE TABLE IF NOT EXISTS interventions (
     KEY fk_interv_probe (probe_id),
     CONSTRAINT fk_interv_probe FOREIGN KEY (probe_id) REFERENCES probes (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS users (
+    id            INT          NOT NULL AUTO_INCREMENT,
+    username      VARCHAR(50)  NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Compte par défaut  →  login: admin  /  mot de passe: admin1234
+-- ⚠️  Changez le mot de passe après la première connexion !
+INSERT INTO users (username, password_hash, created_at)
+VALUES (
+    'admin',
+    'pbkdf2:sha256:200000$736f6e646564625f73346c745f763121$4c1274bf640443aa50f7fd2fcfabfd588e875792438620adc10c569135b0ce5b',
+    NOW()
+)
+ON DUPLICATE KEY UPDATE username = username;
