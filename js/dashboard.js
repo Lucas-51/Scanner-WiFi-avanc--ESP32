@@ -751,10 +751,37 @@
     }
   };
 
+  function initRefreshButton() {
+    const btn = document.getElementById('btn-refresh-reseaux');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      btn.classList.add('is-loading');
+      try {
+        const url = `/api/dashboard?ts=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const payload = await res.json();
+        if (window.applyLivePayload) {
+          window.applyLivePayload(payload);
+        } else {
+          // fallback : simple relance du rendu avec ce qui est déjà normalisé
+          if (payload.mesures) DB.mesures = payload.mesures;
+          if (payload.reseaux) DB.reseaux = payload.reseaux;
+          renderAll();
+        }
+      } catch (e) {
+        console.error('Refresh error:', e);
+      } finally {
+        setTimeout(() => btn.classList.remove('is-loading'), 400);
+      }
+    });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { renderAll(); initVideoScrubbing(); });
+    document.addEventListener('DOMContentLoaded', () => { renderAll(); initVideoScrubbing(); initRefreshButton(); });
   } else {
     renderAll();
     initVideoScrubbing();
+    initRefreshButton();
   }
 })();

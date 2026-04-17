@@ -175,6 +175,9 @@
     }, state.pollIntervalMs);
   }
 
+  window.applyLivePayload = applyLivePayload;
+  window.refreshDashboard = refreshDashboard;
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", startLiveSync, { once: true });
   } else {
