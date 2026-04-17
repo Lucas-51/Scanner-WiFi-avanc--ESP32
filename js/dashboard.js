@@ -556,12 +556,18 @@
                                          : '<span class="badge ok">Actif</span>';
       const ssidColor = status === 'offline' ? 'var(--text3)' : 'var(--accent)';
       const locColor  = status === 'offline' ? 'var(--text3)' : '';
+      const isPaused  = s.is_active === '0' || s.is_active === false || s.is_active === 0;
+      const powerBtn  = isPaused
+        ? `<button onclick="setProbePower(${esc(s.id)},true)" title="Activer" style="background:var(--ok);border:none;color:#000;padding:4px 10px;cursor:pointer;font-size:9px;font-family:inherit;letter-spacing:.06em;margin-right:6px;">▶ ON</button>`
+        : `<button onclick="setProbePower(${esc(s.id)},false)" title="Mettre en pause" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 10px;cursor:pointer;font-size:9px;font-family:inherit;letter-spacing:.06em;margin-right:6px;">⏸ OFF</button>`;
+      const editBtn = `<button onclick="openProbeModal(${esc(s.id)},'${esc(s.nom)}','${esc(s.localisation)}')" title="Configurer" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;cursor:pointer;font-size:9px;font-family:inherit;letter-spacing:.06em;">✎ CONFIG</button>`;
       return `<tr>
         <td style="color:var(--dim)">${esc(s.id)}</td>
         <td style="color:${ssidColor}">${esc(s.nom)}</td>
         <td style="color:${locColor}">${esc(s.localisation)}</td>
         <td style="color:var(--text2);font-size:9px">${esc(s.date_deploiement)}</td>
         <td>${badge}</td>
+        <td style="white-space:nowrap">${powerBtn}${editBtn}</td>
       </tr>`;
     }).join('');
   }
@@ -634,6 +640,54 @@
   window.probeStatus = probeStatus;
   window.parseRssi = parseRssi;
   window.rssiColor = rssiColor;
+
+  // ── Gestion sonde depuis le dashboard ───────────────────────────────────────
+  window.openProbeModal = function(id, nom, loc) {
+    $('modal-probe-id').value   = id;
+    $('modal-probe-name').value = nom;
+    $('modal-probe-loc').value  = loc;
+    $('modal-feedback').textContent = '';
+    const overlay = $('probe-modal-overlay');
+    overlay.style.display = 'flex';
+  };
+
+  window.closeProbeModal = function() {
+    $('probe-modal-overlay').style.display = 'none';
+  };
+
+  window.saveProbeSettings = async function() {
+    const id  = $('modal-probe-id').value;
+    const nom = $('modal-probe-name').value.trim();
+    const loc = $('modal-probe-loc').value.trim();
+    if (!nom || !loc) { $('modal-feedback').textContent = 'Nom et localisation requis.'; return; }
+    $('modal-feedback').textContent = 'Envoi…';
+    try {
+      const r = await fetch(`/api/probe/${id}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nom, location: loc }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || r.status);
+      $('modal-feedback').textContent = 'Config envoyée — appliquée au prochain cycle ESP32.';
+      setTimeout(window.closeProbeModal, 1800);
+    } catch(e) {
+      $('modal-feedback').textContent = 'Erreur : ' + e.message;
+    }
+  };
+
+  window.setProbePower = async function(id, active) {
+    try {
+      const r = await fetch(`/api/probe/${id}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active }),
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || r.status); }
+    } catch(e) {
+      alert('Erreur : ' + e.message);
+    }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { renderAll(); initVideoScrubbing(); });

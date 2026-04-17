@@ -33,6 +33,7 @@ const int TRUSTED_AP_COUNT = sizeof(trustedAps) / sizeof(trustedAps[0]);
 // ── Variables globales ────────────────────────────────────────────────────────
 Preferences prefs;
 unsigned long lastScanAt = 0;
+bool g_probeActive = true;  // false = pause demandée par le dashboard
 
 WiFiManagerParameter* paramApiUrl;
 WiFiManagerParameter* paramApiToken;
@@ -311,12 +312,108 @@ void setup() {
   lastScanAt = millis() - SCAN_INTERVAL_MS;
 }
 
+// ── Sync dashboard : récupère config + état on/off ────────────────────────────
+// Parsing JSON minimaliste (pas de lib externe requise)
+bool jsonBool(const String& json, const String& key, bool fallback) {
+  int idx = json.indexOf("\"" + key + "\"");
+  if (idx < 0) return fallback;
+  int colon = json.indexOf(":", idx);
+  if (colon < 0) return fallback;
+  String rest = json.substring(colon + 1);
+  rest.trim();
+  if (rest.startsWith("true"))  return true;
+  if (rest.startsWith("false")) return false;
+  return fallback;
+}
+
+String jsonString(const String& json, const String& key, const String& fallback) {
+  int idx = json.indexOf("\"" + key + "\"");
+  if (idx < 0) return fallback;
+  int colon = json.indexOf(":", idx);
+  if (colon < 0) return fallback;
+  int q1 = json.indexOf("\"", colon + 1);
+  if (q1 < 0) return fallback;
+  int q2 = json.indexOf("\"", q1 + 1);
+  if (q2 < 0) return fallback;
+  return json.substring(q1 + 1, q2);
+}
+
+void syncWithServer() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  String url = String(g_apiUrl);
+  // Remplace /api/ingest par /api/probe/<id>/sync
+  url.replace("/api/ingest", "/api/probe/" + String(g_probeId) + "/sync");
+
+  HTTPClient http;
+  http.begin(url);
+  if (strlen(g_apiToken) > 0) http.addHeader("X-API-Token", g_apiToken);
+
+  int code = http.GET();
+  if (code != 200) { http.end(); return; }
+
+  String body = http.getString();
+  http.end();
+
+  // Active / pause
+  g_probeActive = jsonBool(body, "active", true);
+  Serial.println(g_probeActive ? "Sonde: ACTIVE" : "Sonde: EN PAUSE (dashboard)");
+
+  // Config en attente
+  if (body.indexOf("\"config\":{") >= 0) {
+    String newName = jsonString(body, "name", "");
+    String newLoc  = jsonString(body, "location", "");
+    bool changed = false;
+    if (newName.length() > 0 && newName != String(g_probeName)) {
+      newName.toCharArray(g_probeName, sizeof(g_probeName));
+      changed = true;
+    }
+    if (newLoc.length() > 0 && newLoc != String(g_probeLoc)) {
+      newLoc.toCharArray(g_probeLoc, sizeof(g_probeLoc));
+      changed = true;
+    }
+    if (changed) {
+      savePrefs();
+      Serial.println("Config mise a jour : " + String(g_probeName) + " @ " + String(g_probeLoc));
+    }
+  }
+}
+
+// ── Portail de reconfiguration (appui long BOOT pendant le fonctionnement) ────
+void checkReconfigButton() {
+  if (digitalRead(RESET_PIN) != LOW) return;
+
+  unsigned long pressStart = millis();
+  Serial.println("Bouton BOOT detecte, maintenir 3s pour ouvrir le portail de config...");
+  while (digitalRead(RESET_PIN) == LOW) {
+    if (millis() - pressStart >= 3000) {
+      Serial.println("Ouverture du portail de reconfiguration...");
+      WiFiManager wm;
+      wm.addParameter(paramApiUrl);
+      wm.addParameter(paramApiToken);
+      wm.addParameter(paramProbeName);
+      wm.addParameter(paramProbeLoc);
+      wm.addParameter(paramProbeId);
+      wm.setSaveParamsCallback(saveParamsCallback);
+      wm.startConfigPortal("SondeDB-Config", "sondedb1234");
+      Serial.println("Portail ferme. Reprise du scan.");
+      return;
+    }
+    delay(50);
+  }
+}
+
 // ── Loop ──────────────────────────────────────────────────────────────────────
 void loop() {
+  checkReconfigButton();
+
   unsigned long now = millis();
   if (now - lastScanAt >= SCAN_INTERVAL_MS) {
     lastScanAt = now;
-    pushScan();
+    syncWithServer();
+    if (g_probeActive) {
+      pushScan();
+    }
   }
   delay(250);
 }

@@ -92,6 +92,7 @@
         localisation: normalizeString(row.localisation || row.location, "Non renseignée"),
         date_deploiement: normalizeString(row.date_deploiement || row.deployed_at),
         last_seen: normalizeString(row.last_seen),
+        is_active: row.is_active,
       })),
       meta: payload.meta || {},
     };

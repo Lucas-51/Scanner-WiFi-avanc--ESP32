@@ -310,6 +310,22 @@ def _ensure_users_columns() -> None:
             )
 
 
+def _ensure_probe_columns() -> None:
+    """Ajoute is_active et config_pending à probes si manquants."""
+    with mysql_cursor(with_database=True, commit=True) as cursor:
+        for col, ddl in (
+            ("is_active",      "ALTER TABLE probes ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1"),
+            ("config_pending", "ALTER TABLE probes ADD COLUMN config_pending JSON NULL"),
+        ):
+            cursor.execute(
+                "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS "
+                "WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'probes' AND COLUMN_NAME = %s",
+                (CONFIG["db_name"], col),
+            )
+            if cursor.fetchone()["cnt"] == 0:
+                cursor.execute(ddl)
+
+
 def ensure_schema() -> None:
     """Initialise la base + schéma principal + schéma users (idempotent)."""
     global _SCHEMA_READY
@@ -329,6 +345,7 @@ def ensure_schema() -> None:
         _run_schema_file(SCHEMA_PATH, tolerate_errors=False)
         _run_schema_file(USERS_SCHEMA_PATH, tolerate_errors=True)
         _ensure_users_columns()
+        _ensure_probe_columns()
         _SCHEMA_READY = True
 
 
@@ -341,10 +358,11 @@ DASHBOARD_QUERIES: dict[str, tuple[str, str]] = {
             p.name AS nom,
             p.location AS localisation,
             DATE_FORMAT(p.deploy_date, '%%Y-%%m-%%d %%H:%%i:%%s') AS date_deploiement,
-            DATE_FORMAT(MAX(m.timestamp), '%%Y-%%m-%%d %%H:%%i:%%s') AS last_seen
+            DATE_FORMAT(MAX(m.timestamp), '%%Y-%%m-%%d %%H:%%i:%%s') AS last_seen,
+            p.is_active
         FROM probes p
         LEFT JOIN measurements m ON m.probe_id = p.id
-        GROUP BY p.id, p.name, p.location, p.deploy_date
+        GROUP BY p.id, p.name, p.location, p.deploy_date, p.is_active
         ORDER BY p.name ASC
         """,
         "",
@@ -436,6 +454,55 @@ def build_dashboard_payload() -> dict[str, Any]:
         "db_name": CONFIG["db_name"],
     }
     return data
+
+
+# ══ Commandes sonde ═════════════════════════════════════════════════════════
+def get_probe_sync(probe_id: int) -> dict[str, Any]:
+    """Retourne l'état actif + config en attente, puis efface config_pending."""
+    ensure_schema()
+    with mysql_cursor(with_database=True, commit=True) as cursor:
+        cursor.execute(
+            "SELECT is_active, config_pending FROM probes WHERE id = %s",
+            (probe_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {"active": True, "config": None}
+
+        config = json.loads(row["config_pending"]) if row["config_pending"] else None
+        if config:
+            cursor.execute("UPDATE probes SET config_pending = NULL WHERE id = %s", (probe_id,))
+
+        return {"active": bool(row["is_active"]), "config": config}
+
+
+def update_probe_settings(probe_id: int, settings: dict[str, Any]) -> None:
+    """Met à jour is_active et/ou config_pending pour une sonde."""
+    ensure_schema()
+    config: dict[str, str] = {}
+    if "name" in settings:
+        config["name"] = normalize_text(settings["name"])
+    if "location" in settings:
+        config["location"] = normalize_text(settings["location"])
+
+    active = settings.get("active")
+
+    with mysql_cursor(with_database=True, commit=True) as cursor:
+        if config and active is not None:
+            cursor.execute(
+                "UPDATE probes SET config_pending = %s, is_active = %s WHERE id = %s",
+                (json.dumps(config), 1 if active else 0, probe_id),
+            )
+        elif config:
+            cursor.execute(
+                "UPDATE probes SET config_pending = %s WHERE id = %s",
+                (json.dumps(config), probe_id),
+            )
+        elif active is not None:
+            cursor.execute(
+                "UPDATE probes SET is_active = %s WHERE id = %s",
+                (1 if active else 0, probe_id),
+            )
 
 
 # ══ Authentification ════════════════════════════════════════════════════════
@@ -681,6 +748,10 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
         if route is not None:
             return route(self, user)
 
+        # /api/probe/<id>/sync
+        if re.match(r"^/api/probe/\d+/sync$", path):
+            return self.handle_probe_sync()
+
         # Pages statiques protégées / redirection
         if path == "/":
             if not user:
@@ -694,9 +765,14 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
     def do_POST(self) -> None:
         path = urlparse(self.path).path
         route = _POST_ROUTES.get(path)
-        if route is None:
-            return self.send_api_error(HTTPStatus.NOT_FOUND, "Point d'entrée API introuvable.")
-        route(self)
+        if route is not None:
+            return route(self)
+
+        # /api/probe/<id>/settings
+        if re.match(r"^/api/probe/\d+/settings$", path):
+            return self.handle_probe_settings()
+
+        return self.send_api_error(HTTPStatus.NOT_FOUND, "Point d'entrée API introuvable.")
 
     # Lecture body
     def read_json_body(self) -> dict[str, Any]:
@@ -807,6 +883,53 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
             return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
         self.send_json(HTTPStatus.CREATED, result)
+
+    def _probe_id_from_path(self) -> int | None:
+        m = re.match(r"^/api/probe/(\d+)/", urlparse(self.path).path)
+        return int(m.group(1)) if m else None
+
+    def handle_probe_sync(self) -> None:
+        """GET /api/probe/<id>/sync — appelé par l'ESP32."""
+        probe_id = self._probe_id_from_path()
+        if probe_id is None:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, "ID sonde invalide.")
+
+        expected = CONFIG["api_token"]
+        if expected:
+            token = normalize_text(self.headers.get("X-API-Token"))
+            auth = normalize_text(self.headers.get("Authorization"))
+            bearer = auth.removeprefix("Bearer ").strip() if auth else ""
+            if expected not in {token, bearer}:
+                return self.send_api_error(HTTPStatus.UNAUTHORIZED, "Token API invalide.")
+
+        try:
+            result = get_probe_sync(probe_id)
+        except Exception as exc:
+            traceback.print_exc()
+            return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+        self.send_json(HTTPStatus.OK, result)
+
+    def handle_probe_settings(self) -> None:
+        """POST /api/probe/<id>/settings — appelé par le dashboard."""
+        user = get_session_user(self.headers.get("Cookie", ""))
+        if not user:
+            return self.send_api_error(HTTPStatus.UNAUTHORIZED, "Session expirée.")
+
+        probe_id = self._probe_id_from_path()
+        if probe_id is None:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, "ID sonde invalide.")
+
+        try:
+            body = self.read_json_body()
+        except ValueError as exc:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, str(exc))
+
+        try:
+            update_probe_settings(probe_id, body)
+        except Exception as exc:
+            traceback.print_exc()
+            return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+        self.send_json(HTTPStatus.OK, {"status": "ok"})
 
 
 # ── Tables de routage ───────────────────────────────────────────────────────
