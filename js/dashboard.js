@@ -18,7 +18,7 @@
   const parseRssi = v => { const n = parseInt(v); return isNaN(n) ? -100 : n; };
   const dateFromSql = s => {
     if (!s) return null;
-    const t = new Date(String(s).replace(' ', 'T')).getTime();
+    const t = new Date(String(s).replace(' ', 'T') + 'Z').getTime();
     return isNaN(t) ? null : t;
   };
 
