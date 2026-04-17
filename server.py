@@ -375,12 +375,15 @@ def build_dashboard_payload() -> dict[str, Any]:
                 cursor,
                 """
                 SELECT
-                    id,
-                    name AS nom,
-                    location AS localisation,
-                    DATE_FORMAT(deploy_date, '%%Y-%%m-%%d %%H:%%i:%%s') AS date_deploiement
-                FROM probes
-                ORDER BY name ASC
+                    p.id,
+                    p.name AS nom,
+                    p.location AS localisation,
+                    DATE_FORMAT(p.deploy_date, '%%Y-%%m-%%d %%H:%%i:%%s') AS date_deploiement,
+                    DATE_FORMAT(MAX(m.timestamp), '%%Y-%%m-%%d %%H:%%i:%%s') AS last_seen
+                FROM probes p
+                LEFT JOIN measurements m ON m.probe_id = p.id
+                GROUP BY p.id, p.name, p.location, p.deploy_date
+                ORDER BY p.name ASC
                 """,
             )
             alertes = query_all(

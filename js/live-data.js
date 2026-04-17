@@ -91,6 +91,7 @@
         nom: normalizeString(row.nom || row.name, "ESP32"),
         localisation: normalizeString(row.localisation || row.location, "Non renseignée"),
         date_deploiement: normalizeString(row.date_deploiement || row.deployed_at),
+        last_seen: normalizeString(row.last_seen),
       })),
       meta: payload.meta || {},
     };
@@ -126,18 +127,19 @@
     const url = `${state.apiBase}/api/dashboard?ts=${Date.now()}`;
     const response = await fetch(url, {
       cache: "no-store",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     });
+
+    if (response.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
 
     if (!response.ok) {
       let message = `Erreur API (${response.status})`;
       try {
         const payload = await response.json();
-        if (payload && payload.error) {
-          message = payload.error;
-        }
+        if (payload && payload.error) message = payload.error;
       } catch (_error) {
         // Pas de body JSON exploitable, on garde le message HTTP simple.
       }

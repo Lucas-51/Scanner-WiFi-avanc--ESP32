@@ -255,6 +255,7 @@ body {
 .badge.warning  { color: var(--warn);   border-color: var(--warn); }
 .badge.info     { color: var(--dim);    border-color: var(--dim); }
 .badge.ok       { color: var(--ok);     border-color: var(--ok); }
+.badge.offline  { color: var(--text3);  border-color: var(--text3); }
 
 /* ══ RSSI ═════════════════════════════════════════════════════════════════════ */
 .rssi-row {
@@ -336,6 +337,8 @@ body {
   border: 1px solid rgba(255,255,255,0.04); animation: sonar 2.4s infinite 0.7s;
 }
 @keyframes sonar { 0%{transform:scale(0.3);opacity:1} 100%{transform:scale(1);opacity:0} }
+.sonde-node.is-offline .sonde-ring::before,
+.sonde-node.is-offline .sonde-ring::after { animation: none; opacity: 0; }
 .sonde-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text); }
 .sonde-label {
   position: absolute; top: 100%; left: 50%; transform: translateX(-50%);

@@ -496,6 +496,17 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 const DB = { alertes:[], interventions:[], mesures:[], reseaux:[], sondes:[] };
 
+// Seuil hors-ligne : 3 × l'intervalle de scan firmware (15 s) + marge
+const OFFLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
+
+// Retourne 'online' | 'alert' | 'offline'
+function probeStatus(s) {
+  if (!s.last_seen) return 'offline';
+  const ts = new Date(s.last_seen.replace(' ', 'T')).getTime();
+  if (isNaN(ts) || Date.now() - ts > OFFLINE_THRESHOLD_MS) return 'offline';
+  return DB.alertes.some(a => a.id_sonde === s.id && a.niveau === 'critical') ? 'alert' : 'online';
+}
+
 // ── Données par défaut ────────────────────────────────────────────────────────
 function loadDefaultData() {
   // Données initialisées vides — le dashboard est alimenté en temps réel par l'API MySQL.
@@ -602,7 +613,8 @@ function renderAll() {
 function updateKPIs() {
   // Affiche '—' tant qu'aucune donnée live n'a été reçue de l'API
   const fmt = n => n === 0 && !window._liveDataReceived ? '—' : n;
-  document.getElementById('kpi-sondes').textContent  = fmt(DB.sondes.length);
+  const onlineSondes = DB.sondes.filter(s => probeStatus(s) !== 'offline').length;
+  document.getElementById('kpi-sondes').textContent  = fmt(onlineSondes);
   document.getElementById('kpi-reseaux').textContent = fmt(DB.reseaux.length);
   document.getElementById('kpi-mesures').textContent = fmt(DB.mesures.length);
   document.getElementById('kpi-alertes').textContent = fmt(DB.alertes.length);
@@ -702,9 +714,10 @@ function renderSondeMap(containerId) {
   if (!c) return;
   c.innerHTML = DB.sondes.map((s, i) => {
     const pos = sondePositions[i % sondePositions.length];
-    const hasAlert = DB.alertes.some(a => a.id_sonde === s.id && a.niveau === 'critical');
-    const color = hasAlert ? 'var(--danger)' : 'var(--text)';
-    return `<div class="sonde-node" style="top:${pos.top};left:${pos.left}">
+    const status = probeStatus(s);
+    const color = status === 'alert' ? 'var(--danger)' : status === 'offline' ? 'var(--text3)' : 'var(--text)';
+    const offlineCls = status === 'offline' ? ' is-offline' : '';
+    return `<div class="sonde-node${offlineCls}" style="top:${pos.top};left:${pos.left}">
       <div class="sonde-ring" style="border-color:${color}">
         <div class="sonde-dot" style="background:${color}"></div>
       </div>
@@ -927,14 +940,16 @@ function renderInterventionChart() {
 // ── Sondes Table ──────────────────────────────────────────────────────────────
 function renderSondesTable() {
   document.getElementById('sondes-tbody').innerHTML = DB.sondes.map(s => {
-    const hasAlert = DB.alertes.some(a=>a.id_sonde===s.id&&a.niveau==='critical');
-    const badge = hasAlert
+    const status = probeStatus(s);
+    const badge = status === 'alert'
       ? '<span class="badge critical">Alerte</span>'
+      : status === 'offline'
+      ? '<span class="badge offline">Hors ligne</span>'
       : '<span class="badge ok">Actif</span>';
     return `<tr>
       <td style="color:var(--dim)">${s.id}</td>
-      <td style="color:var(--accent)">${s.nom}</td>
-      <td>${s.localisation}</td>
+      <td style="color:${status === 'offline' ? 'var(--text3)' : 'var(--accent)'}">${s.nom}</td>
+      <td style="color:${status === 'offline' ? 'var(--text3)' : ''}">${s.localisation}</td>
       <td style="color:var(--text2);font-size:9px">${s.date_deploiement}</td>
       <td>${badge}</td>
     </tr>`;
