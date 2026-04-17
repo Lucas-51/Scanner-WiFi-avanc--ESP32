@@ -389,12 +389,41 @@
   function renderMesuresTable() {
     const tbody = $('mesures-tbody');
     if (!tbody) return;
-    tbody.innerHTML = DB.mesures.map(m => {
+
+    // Dédoublonnage par BSSID+sonde : on garde la mesure la plus récente
+    // et on compte le nombre de détections pour afficher un badge.
+    const map = new Map();
+    DB.mesures.forEach(m => {
+      const key = `${m.bssid}|${m.id_sonde}`;
+      const ts = new Date(String(m.horodatage).replace(' ', 'T') + 'Z').getTime() || 0;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, { ...m, _ts: ts, _count: 1, _bestRssi: parseRssi(m.rssi) });
+      } else {
+        existing._count += 1;
+        const r = parseRssi(m.rssi);
+        if (r > existing._bestRssi) existing._bestRssi = r;
+        if (ts > existing._ts) {
+          existing._ts = ts;
+          existing.horodatage = m.horodatage;
+          existing.rssi = m.rssi;
+          existing.canal = m.canal;
+          existing.ssid = m.ssid;
+        }
+      }
+    });
+
+    const unique = [...map.values()].sort((a, b) => b._ts - a._ts);
+
+    tbody.innerHTML = unique.map(m => {
       const rssi = parseRssi(m.rssi);
       const color = rssiColor(rssi);
       const sonde = DB.sondes.find(s => s.id === m.id_sonde);
+      const countBadge = m._count > 1
+        ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--line);color:var(--text2);font-size:8px;letter-spacing:1px">×${m._count}</span>`
+        : '';
       return `<tr>
-        <td style="color:var(--accent)">${esc(m.ssid)}</td>
+        <td style="color:var(--accent)">${esc(m.ssid)}${countBadge}</td>
         <td style="color:var(--text2);font-size:9px">${esc(m.bssid)}</td>
         <td style="color:${color}">${rssi} dBm</td>
         <td>${esc(m.canal)}</td>
@@ -402,6 +431,12 @@
         <td style="color:var(--text2);font-size:9px">${esc(m.horodatage)}</td>
       </tr>`;
     }).join('');
+
+    const badge = $('alertes-count-badge');
+    if (badge) {
+      badge.textContent = `${unique.length} uniques · ${DB.mesures.length} mesures`;
+      badge.style.display = '';
+    }
   }
 
   // ── Alertes Table + filter ──────────────────────────────────────────────────
