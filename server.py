@@ -678,6 +678,31 @@ def insert_alerts(cursor, probe_id: int, alerts: list[dict[str, Any]]) -> None:
     )
 
 
+def purge_data(minutes: int) -> dict[str, Any]:
+    """Supprime mesures et alertes des X dernières minutes."""
+    ensure_schema()
+    allowed = {5, 15, 30, 60}
+    if minutes not in allowed:
+        raise ValueError(f"Intervalle invalide. Valeurs acceptées : {sorted(allowed)}")
+    with mysql_cursor(with_database=True, commit=True) as cursor:
+        cursor.execute(
+            "DELETE FROM measurements WHERE timestamp >= NOW() - INTERVAL %s MINUTE",
+            (minutes,),
+        )
+        deleted_mesures = cursor.rowcount
+        cursor.execute(
+            "DELETE FROM alerts WHERE timestamp >= NOW() - INTERVAL %s MINUTE",
+            (minutes,),
+        )
+        deleted_alertes = cursor.rowcount
+    return {
+        "status": "ok",
+        "interval_minutes": minutes,
+        "deleted_measurements": deleted_mesures,
+        "deleted_alerts": deleted_alertes,
+    }
+
+
 def ingest_payload(payload: dict[str, Any]) -> dict[str, Any]:
     ensure_schema()
     probe = normalize_probe(payload)
@@ -931,6 +956,25 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
             return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
         self.send_json(HTTPStatus.OK, {"status": "ok"})
 
+    def handle_purge(self) -> None:
+        """POST /api/purge — supprime mesures + alertes sur un intervalle."""
+        user = get_session_user(self.headers.get("Cookie", ""))
+        if not user:
+            return self.send_api_error(HTTPStatus.UNAUTHORIZED, "Session expirée.")
+        try:
+            body = self.read_json_body()
+        except ValueError as exc:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, str(exc))
+        try:
+            minutes = int(body.get("minutes", 0))
+            result = purge_data(minutes)
+        except (ValueError, TypeError) as exc:
+            return self.send_api_error(HTTPStatus.BAD_REQUEST, str(exc))
+        except Exception as exc:
+            traceback.print_exc()
+            return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+        self.send_json(HTTPStatus.OK, result)
+
 
 # ── Tables de routage ───────────────────────────────────────────────────────
 _GET_ROUTES: dict[str, Callable[[SondeDBHandler, str | None], None]] = {
@@ -941,6 +985,7 @@ _GET_ROUTES: dict[str, Callable[[SondeDBHandler, str | None], None]] = {
 _POST_ROUTES: dict[str, Callable[[SondeDBHandler], None]] = {
     "/api/login": SondeDBHandler.handle_login,
     "/api/ingest": SondeDBHandler.handle_ingest,
+    "/api/purge": SondeDBHandler.handle_purge,
 }
 
 

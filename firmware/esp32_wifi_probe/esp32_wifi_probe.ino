@@ -11,7 +11,7 @@ char g_probeLoc[100]  = "Non configuree";
 char g_probeId[8]     = "1";
 
 const char* FIRMWARE_VERSION  = "sondedb-esp32-v2";
-const unsigned long SCAN_INTERVAL_MS = 15000;
+const unsigned long SCAN_INTERVAL_MS = 10000;
 const int MAX_NETWORKS_PER_PUSH = 20;
 const int MAX_ALERTS_PER_PUSH   = 12;
 

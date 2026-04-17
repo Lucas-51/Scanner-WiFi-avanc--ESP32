@@ -391,15 +391,34 @@ body {
 .feature-chip.blue { border-color: rgba(0,152,240,0.4); color: rgba(0,152,240,0.85); }
 
 /* ══ VIDEO SCROLL ═════════════════════════════════════════════════════════════ */
-.video-scroll-container { position: relative; height: 300vh; }
+.video-scroll-container { position: relative; height: 400vh; }
 .video-sticky-wrap {
   position: sticky; top: 108px;
   height: calc(100vh - 108px);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: radial-gradient(circle at center, rgba(200,255,0,0.04) 0%, transparent 60%);
 }
-.video-sticky-wrap video { width: 100%; max-height: calc(100vh - 148px); object-fit: contain; }
-.video-progress-track { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--line); z-index: 6; }
-.video-progress-fill  { height: 100%; width: 0%; background: var(--text); transition: width 0.05s linear; }
+.video-sticky-wrap::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,0.03) 50%, transparent 50.1%),
+    linear-gradient(0deg,  transparent 49.9%, rgba(255,255,255,0.03) 50%, transparent 50.1%);
+  background-size: 80px 80px;
+  pointer-events: none; opacity: 0.5;
+}
+.video-sticky-wrap video {
+  width: 100%; max-height: calc(100vh - 148px); object-fit: contain;
+  will-change: contents;
+  filter: drop-shadow(0 0 40px rgba(200,255,0,0.08));
+  transform: translateZ(0);
+}
+.video-progress-track { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--line); z-index: 6; }
+.video-progress-fill  {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--text));
+  box-shadow: 0 0 8px rgba(200,255,0,0.5);
+  transition: width 0.08s linear;
+}
 .video-scroll-label {
   position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
   font-size: 8px; text-transform: uppercase; letter-spacing: 2.5px; color: var(--dim);

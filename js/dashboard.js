@@ -607,22 +607,60 @@
     const label     = $('video-scroll-label');
     if (!video || !container) return;
     video.pause();
+    video.playbackRate = 0;
 
-    function scrub() {
+    let targetProgress = 0;
+    let currentProgress = 0;
+    let rafId = null;
+    let lastRenderedTime = -1;
+
+    function computeTarget() {
       const section = $('sec-detail');
-      if (!section || !section.classList.contains('active')) return;
+      if (!section || !section.classList.contains('active')) return null;
       const rect = container.getBoundingClientRect();
       const scrollable = container.offsetHeight - window.innerHeight;
-      if (scrollable <= 0) return;
-      const progress = clamp(Math.max(0, -rect.top) / scrollable, 0, 1);
-      if (video.readyState >= 1 && video.duration) {
-        video.currentTime = progress * video.duration;
-      }
-      if (fill)  fill.style.width = (progress * 100).toFixed(2) + '%';
-      if (label) label.style.opacity = progress > 0.02 ? '0' : '1';
+      if (scrollable <= 0) return null;
+      return clamp(Math.max(0, -rect.top) / scrollable, 0, 1);
     }
-    window.addEventListener('scroll', scrub, { passive: true });
-    video.addEventListener('loadedmetadata', scrub);
+
+    function tick() {
+      rafId = null;
+      // Easing: lerp entre position actuelle et cible → rendu ultra fluide
+      const diff = targetProgress - currentProgress;
+      if (Math.abs(diff) > 0.0005) {
+        currentProgress += diff * 0.12;
+        schedule();
+      } else {
+        currentProgress = targetProgress;
+      }
+
+      if (video.readyState >= 2 && video.duration) {
+        const t = currentProgress * video.duration;
+        // Évite les writes inutiles (>16ms diff)
+        if (Math.abs(t - lastRenderedTime) > 0.016) {
+          video.currentTime = t;
+          lastRenderedTime = t;
+        }
+      }
+      if (fill)  fill.style.width = (currentProgress * 100).toFixed(2) + '%';
+      if (label) label.style.opacity = currentProgress > 0.02 ? '0' : '1';
+    }
+
+    function schedule() {
+      if (rafId == null) rafId = requestAnimationFrame(tick);
+    }
+
+    function onScroll() {
+      const next = computeTarget();
+      if (next == null) return;
+      targetProgress = next;
+      schedule();
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    video.addEventListener('loadedmetadata', () => { onScroll(); schedule(); });
+    video.addEventListener('loadeddata', schedule);
   }
 
   // ── Init ────────────────────────────────────────────────────────────────────
@@ -635,6 +673,26 @@
   window.handleFile = handleFile;
   window.doLogout = doLogout;
   window.filterAlertes = filterAlertes;
+
+  window.purgeData = async function(minutes) {
+    const labels = { 5:'5 min', 15:'15 min', 30:'30 min', 60:'1 heure' };
+    const fb = $('purge-feedback');
+    if (!confirm(`Supprimer toutes les mesures et alertes des ${labels[minutes]} ? Cette action est irréversible.`)) return;
+    if (fb) fb.textContent = 'Suppression…';
+    try {
+      const r = await fetch('/api/purge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || r.status);
+      if (fb) fb.textContent = `✓ ${data.deleted_measurements} mesures et ${data.deleted_alerts} alertes supprimées.`;
+      setTimeout(() => { if (fb) fb.textContent = ''; }, 4000);
+    } catch(e) {
+      if (fb) fb.textContent = 'Erreur : ' + e.message;
+    }
+  };
   window.showTooltip = showTooltip;
   window.hideTooltip = hideTooltip;
   window.probeStatus = probeStatus;
@@ -684,6 +742,10 @@
         body: JSON.stringify({ active }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || r.status); }
+      // Mise à jour immédiate de l'état local
+      const sonde = DB.sondes.find(s => String(s.id) === String(id));
+      if (sonde) { sonde.is_active = active ? 1 : 0; }
+      renderSondesTable();
     } catch(e) {
       alert('Erreur : ' + e.message);
     }

@@ -277,6 +277,21 @@
   <div class="section" id="sec-alertes">
 
     <div class="band">
+      <span class="band-title">Purge des données</span>
+    </div>
+
+    <div class="panel-full" style="padding:16px 20px;">
+      <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:12px;">SUPPRIMER MESURES + ALERTES DES DERNIÈRES</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button onclick="purgeData(5)"  class="filter-btn">5 min</button>
+        <button onclick="purgeData(15)" class="filter-btn">15 min</button>
+        <button onclick="purgeData(30)" class="filter-btn">30 min</button>
+        <button onclick="purgeData(60)" class="filter-btn">1 heure</button>
+        <span id="purge-feedback" style="font-size:10px;color:var(--accent);margin-left:8px;"></span>
+      </div>
+    </div>
+
+    <div class="band">
       <span class="band-title">Tableau des alertes</span>
       <span class="band-spacer"></span>
     </div>
