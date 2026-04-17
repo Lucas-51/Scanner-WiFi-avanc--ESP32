@@ -440,6 +440,245 @@ body {
 .section.active > *:nth-child(5){animation-delay:.22s}
 .section.active > *:nth-child(6){animation-delay:.27s}
 
+/* ══ BUTTONS UTIL ═════════════════════════════════════════════════════════════ */
+.btn-ghost {
+  background: transparent; border: 1px solid var(--accent); color: var(--accent);
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px;
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.btn-ghost:hover:not(:disabled) { background: var(--accent); color: var(--bg); }
+.btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-logout {
+  margin-left: auto; margin-right: 0;
+  background: transparent; border: none; cursor: pointer;
+  padding: 0 28px;
+  font-family: var(--mono); font-size: 8px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--dim);
+  transition: color .15s;
+}
+.btn-logout:hover { color: var(--danger); }
+
+/* ══ TARGET WIFI WIDGET ═══════════════════════════════════════════════════════ */
+.target-wifi {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 28px;
+  align-items: center;
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(200,255,0,0.03), transparent 55%);
+}
+.tw-label {
+  display: flex; flex-direction: column; gap: 6px;
+  border-right: 1px solid var(--line);
+  padding-right: 24px;
+}
+.tw-lbl-tag {
+  font-size: 7px; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 2px;
+  display: flex; align-items: center; gap: 6px;
+}
+.tw-lbl-tag::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 5px var(--accent);
+  animation: blink 1.6s infinite;
+}
+.tw-lbl-sub { font-size: 7px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+
+.tw-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tw-ssid {
+  font-size: 26px; font-weight: 300; letter-spacing: -1px;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tw-meta {
+  display: flex; flex-wrap: wrap; gap: 18px;
+  font-size: 8px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.tw-meta-item { display: flex; align-items: baseline; gap: 6px; }
+.tw-meta-val { color: var(--text); font-size: 10px; font-weight: 500; }
+
+.tw-rssi {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  padding: 0 20px; border-left: 1px solid var(--line);
+}
+.tw-rssi-val  { font-size: 30px; font-weight: 300; letter-spacing: -1px; line-height: 1; }
+.tw-rssi-unit { font-size: 8px; color: var(--dim); text-transform: uppercase; letter-spacing: 2px; }
+
+.tw-quality {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding-left: 16px;
+}
+.tw-quality-badge {
+  padding: 6px 14px; border: 1px solid; font-size: 9px;
+  font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+}
+.tw-select {
+  background: transparent; color: var(--dim);
+  border: 1px solid var(--line); font-family: var(--mono);
+  font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 8px; cursor: pointer; width: 100%;
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+}
+.tw-select:hover { color: var(--text); border-color: var(--border2); }
+
+.tw-sparkline {
+  grid-column: 1 / -1;
+  height: 42px; position: relative;
+  margin-top: 4px;
+}
+
+/* ══ SPEEDTEST ════════════════════════════════════════════════════════════════ */
+.speedtest-panel {
+  border: 1px solid var(--line);
+  padding: 20px 24px; margin-bottom: 0;
+  background: var(--bg2);
+}
+.speedtest-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.speedtest-spinner {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px var(--accent);
+  animation: blink 0.6s infinite;
+}
+.speedtest-status {
+  font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent);
+}
+.speedtest-score {
+  margin-left: auto; font-size: 10px; font-weight: 700;
+  letter-spacing: 2px; padding: 4px 12px; border: 1px solid;
+}
+
+/* Progress bar type speedtest */
+.speedtest-progress {
+  position: relative;
+  height: 2px; background: var(--bg3);
+  margin-bottom: 18px; overflow: hidden;
+}
+.speedtest-progress-fill {
+  position: absolute; top: 0; left: 0; height: 100%;
+  background: var(--accent); box-shadow: 0 0 8px rgba(200,255,0,0.8);
+  width: 0%; transition: width 0.25s linear;
+}
+.speedtest-progress-fill.is-done {
+  background: var(--ok); box-shadow: 0 0 8px rgba(0,230,118,0.6);
+}
+
+/* Gauge + graphe */
+.speedtest-body {
+  display: grid; grid-template-columns: 210px 1fr;
+  gap: 22px; margin-bottom: 18px;
+}
+.speedtest-gauge {
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: center; gap: 6px;
+  padding: 12px 0; border-right: 1px solid var(--line);
+}
+.speedtest-gauge-big {
+  font-size: 48px; font-weight: 300; letter-spacing: -2px;
+  color: var(--text); line-height: 1;
+}
+.speedtest-gauge-unit {
+  font-size: 8px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.speedtest-gauge-ssid {
+  font-size: 9px; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 6px; max-width: 200px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.speedtest-chart-wrap {
+  position: relative; height: 120px;
+}
+
+/* Stats grid */
+.speedtest-stats {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.speedtest-stat { display: flex; flex-direction: column; gap: 4px; }
+.speedtest-stat-lbl {
+  font-size: 7px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.speedtest-stat-val  { font-size: 14px; color: var(--text); font-weight: 500; }
+.speedtest-stat-unit { font-size: 8px; color: var(--text3); }
+
+/* Results list (individual networks) */
+.speedtest-networks { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.speedtest-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 70px 50px;
+  align-items: center; gap: 12px;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+}
+.speedtest-row-ssid {
+  font-size: 9px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.speedtest-row-alert {
+  font-size: 7px; color: var(--danger);
+  letter-spacing: 1px; margin-left: 8px;
+}
+.speedtest-row-bar {
+  height: 4px; background: var(--bg3); position: relative;
+}
+.speedtest-row-bar-fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  width: 0%; transition: width 0.6s ease;
+}
+.speedtest-row-val {
+  font-size: 9px; text-align: right; font-weight: 700;
+}
+.speedtest-row-canal {
+  font-size: 8px; color: var(--dim); text-align: right;
+}
+
+/* ══ MINI HELPERS inline-replacements ═════════════════════════════════════════ */
+.empty-msg {
+  color: var(--dim); font-size: 8px; padding: 20px 0;
+  text-align: center; text-transform: uppercase; letter-spacing: 1.5px;
+}
+.legend-inline {
+  display: flex; gap: 16px; margin-top: 14px;
+}
+.legend-inline span {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 7px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.legend-inline i {
+  width: 8px; height: 8px; display: inline-block;
+}
+
+.chart-h-220 { position: relative; height: 220px; }
+.chart-h-200 { position: relative; height: 200px; }
+.chart-h-300 { position: relative; height: 300px; }
+
+.import-note {
+  font-size: 9px; color: var(--dim); margin-bottom: 24px; line-height: 1.8;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.import-note b { color: var(--accent); font-weight: 400; }
+
+.upload-zone.compact {
+  padding: 12px 24px; display: flex; align-items: center; gap: 10px;
+  text-align: left;
+}
+.upload-zone.compact span {
+  font-size: 9px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+
 /* ══ RESPONSIVE ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
   .hdr-top { grid-template-columns: 1fr 1fr; }
@@ -449,4 +688,13 @@ body {
   .split-3  { grid-template-columns: 1fr; }
   .esp32-specs-grid { grid-template-columns: 1fr; }
   .nav-item:first-child { margin-left: 12px; }
+  .target-wifi {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .tw-label { border-right: none; padding-right: 0; }
+  .tw-rssi, .tw-quality { border-left: none; padding-left: 0; }
+  .speedtest-body { grid-template-columns: 1fr; }
+  .speedtest-gauge { border-right: none; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  .speedtest-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }

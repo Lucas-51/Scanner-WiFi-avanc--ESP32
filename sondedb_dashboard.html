@@ -45,7 +45,7 @@
     <div class="nav-item" onclick="showSection('sondes',this)">Sondes</div>
     <div class="nav-item" onclick="showSection('import',this)">Import</div>
     <div class="nav-item" onclick="showSection('detail',this)">Détail sonde</div>
-    <button onclick="doLogout()" style="margin-left:auto;margin-right:0;background:transparent;border:none;cursor:pointer;padding:0 28px;font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);transition:color .15s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--dim)'">⏻ Déconnexion</button>
+    <button onclick="doLogout()" class="btn-logout">⏻ Déconnexion</button>
     <div class="hdr-live" id="live-indicator">
       <div class="hdr-live-row">
         <div class="live-dot"></div>
@@ -68,6 +68,34 @@
 
   <!-- ══ VUE GÉNÉRALE ══════════════════════════════════════════════════════════ -->
   <div class="section active" id="sec-overview">
+
+    <!-- ── Target WiFi widget ──────────────────────────────────────────────── -->
+    <div class="target-wifi" id="target-wifi">
+      <div class="tw-label">
+        <div class="tw-lbl-tag">WiFi ciblé</div>
+        <div class="tw-lbl-sub">Réseau analysé</div>
+        <select class="tw-select" id="tw-select"></select>
+      </div>
+      <div class="tw-main">
+        <div class="tw-ssid" id="tw-ssid">—</div>
+        <div class="tw-meta">
+          <div class="tw-meta-item"><span>Canal</span><span class="tw-meta-val" id="tw-canal">—</span></div>
+          <div class="tw-meta-item"><span>BSSID</span><span class="tw-meta-val" id="tw-bssid">—</span></div>
+          <div class="tw-meta-item"><span>Échantillons</span><span class="tw-meta-val" id="tw-samples">—</span></div>
+        </div>
+      </div>
+      <div class="tw-rssi">
+        <div class="tw-rssi-val" id="tw-rssi-val">—</div>
+        <div class="tw-rssi-unit">dBm · RSSI courant</div>
+      </div>
+      <div class="tw-quality">
+        <div class="tw-quality-badge" id="tw-quality-badge">—</div>
+        <div class="tw-lbl-sub">Qualité</div>
+      </div>
+      <div class="tw-sparkline">
+        <canvas id="tw-sparkline-canvas"></canvas>
+      </div>
+    </div>
 
     <div class="kpi-band">
       <div class="kpi">
@@ -92,19 +120,62 @@
       </div>
     </div>
 
-    <!-- ══ TEST WIFI ══════════════════════════════════════════════════════ -->
+    <!-- ══ SPEEDTEST ═════════════════════════════════════════════════════════ -->
     <div class="band" style="margin-bottom:0">
-      <span class="band-title">Test signal WiFi</span>
+      <span class="band-title">Speedtest qualité WiFi</span>
+      <span>·</span>
+      <span>Analyse du signal sur plusieurs secondes</span>
       <span class="band-spacer"></span>
-      <button id="btn-test-wifi" onclick="lancerTestWifi()" style="background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;cursor:pointer;transition:background .15s,color .15s" onmouseover="this.style.background='var(--accent)';this.style.color='var(--bg)'" onmouseout="this.style.background='transparent';this.style.color='var(--accent)'">▶ Lancer un test</button>
+      <button id="btn-speedtest" class="btn-ghost">▶ Lancer le test</button>
     </div>
-    <div id="test-wifi-panel" style="display:none;border:1px solid var(--line);padding:20px 24px;margin-bottom:0;background:var(--bg2)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-        <div id="test-spinner" style="width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:blink 0.6s infinite"></div>
-        <span id="test-status-label" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--accent)">Analyse en cours…</span>
-        <span id="test-score-badge" style="display:none;margin-left:auto;font-size:10px;font-weight:700;letter-spacing:2px;padding:4px 12px;border:1px solid"></span>
+    <div id="speedtest-panel" class="speedtest-panel" style="display:none">
+      <div class="speedtest-head">
+        <div class="speedtest-spinner" id="speedtest-spinner"></div>
+        <span class="speedtest-status" id="speedtest-status">Analyse en cours…</span>
+        <span class="speedtest-score" id="speedtest-score" style="display:none"></span>
       </div>
-      <div id="test-results" style="display:flex;flex-direction:column;gap:8px"></div>
+
+      <div class="speedtest-progress">
+        <div class="speedtest-progress-fill" id="speedtest-progress-fill"></div>
+      </div>
+
+      <div class="speedtest-body">
+        <div class="speedtest-gauge">
+          <div class="speedtest-gauge-big"><span id="speedtest-gauge-val">—</span></div>
+          <div class="speedtest-gauge-unit">dBm · instantané</div>
+          <div class="speedtest-gauge-ssid" id="speedtest-gauge-ssid">—</div>
+        </div>
+        <div class="speedtest-chart-wrap">
+          <canvas id="speedtest-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="speedtest-stats">
+        <div class="speedtest-stat">
+          <div class="speedtest-stat-lbl">Min</div>
+          <div class="speedtest-stat-val"><span id="speedtest-min">—</span>
+            <span class="speedtest-stat-unit">dBm</span></div>
+        </div>
+        <div class="speedtest-stat">
+          <div class="speedtest-stat-lbl">Max</div>
+          <div class="speedtest-stat-val"><span id="speedtest-max">—</span>
+            <span class="speedtest-stat-unit">dBm</span></div>
+        </div>
+        <div class="speedtest-stat">
+          <div class="speedtest-stat-lbl">Moyenne</div>
+          <div class="speedtest-stat-val"><span id="speedtest-avg">—</span>
+            <span class="speedtest-stat-unit">dBm</span></div>
+        </div>
+        <div class="speedtest-stat">
+          <div class="speedtest-stat-lbl">Jitter (σ)</div>
+          <div class="speedtest-stat-val"><span id="speedtest-jit">—</span>
+            <span class="speedtest-stat-unit">dB</span></div>
+        </div>
+        <div class="speedtest-stat">
+          <div class="speedtest-stat-lbl">Échantillons</div>
+          <div class="speedtest-stat-val"><span id="speedtest-count">—</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="band">
@@ -119,16 +190,10 @@
       <div class="panel">
         <div class="panel-title">Canaux WiFi <span class="ptag live">2.4 GHz</span></div>
         <div class="canal-grid" id="canal-grid"></div>
-        <div style="display:flex;gap:16px;margin-top:14px">
-          <span style="display:flex;align-items:center;gap:5px;font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
-            <span style="width:8px;height:8px;background:rgba(200,255,0,0.45);display:inline-block"></span>Signal
-          </span>
-          <span style="display:flex;align-items:center;gap:5px;font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
-            <span style="width:8px;height:8px;background:var(--danger);display:inline-block"></span>Alerte
-          </span>
-          <span style="display:flex;align-items:center;gap:5px;font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
-            <span style="width:8px;height:8px;background:rgba(255,255,255,0.07);display:inline-block"></span>Libre
-          </span>
+        <div class="legend-inline">
+          <span><i style="background:rgba(200,255,0,0.45)"></i>Signal</span>
+          <span><i style="background:var(--danger)"></i>Alerte</span>
+          <span><i style="background:rgba(255,255,255,0.07)"></i>Libre</span>
         </div>
       </div>
       <div class="panel">
@@ -181,11 +246,11 @@
     <div class="split-2">
       <div class="panel">
         <div class="panel-title">Distribution canaux</div>
-        <div style="position:relative;height:220px"><canvas id="canalPieChart"></canvas></div>
+        <div class="chart-h-220"><canvas id="canalPieChart"></canvas></div>
       </div>
       <div class="panel">
         <div class="panel-title">Historique RSSI</div>
-        <div style="position:relative;height:220px"><canvas id="rssiHistChart"></canvas></div>
+        <div class="chart-h-220"><canvas id="rssiHistChart"></canvas></div>
       </div>
     </div>
 
@@ -236,11 +301,11 @@
     <div class="split-2">
       <div class="panel">
         <div class="panel-title">Répartition par niveau</div>
-        <div style="position:relative;height:200px"><canvas id="alerteNiveauChart"></canvas></div>
+        <div class="chart-h-200"><canvas id="alerteNiveauChart"></canvas></div>
       </div>
       <div class="panel">
         <div class="panel-title">Types d'attaque</div>
-        <div style="position:relative;height:200px"><canvas id="alerteTypeChart"></canvas></div>
+        <div class="chart-h-200"><canvas id="alerteTypeChart"></canvas></div>
       </div>
     </div>
 
@@ -264,7 +329,7 @@
       </div>
       <div class="panel">
         <div class="panel-title">Interventions par sonde</div>
-        <div style="position:relative;height:300px"><canvas id="interventionChart"></canvas></div>
+        <div class="chart-h-300"><canvas id="interventionChart"></canvas></div>
       </div>
     </div>
 
@@ -315,9 +380,8 @@
     <div class="split-2">
       <div class="panel">
         <div class="panel-title">Fichier CSV</div>
-        <p style="font-size:9px;color:var(--dim);margin-bottom:24px;line-height:1.8;text-transform:uppercase;letter-spacing:0.8px">
-          Importez votre fichier CSV exporté depuis
-          <span style="color:var(--accent)">sondedb</span>.
+        <p class="import-note">
+          Importez votre fichier CSV exporté depuis <b>sondedb</b>.
           Le dashboard détecte automatiquement les tables
           alerte, intervention, mesure, reseau_wifi et sonde.
         </p>
@@ -328,9 +392,9 @@
           <div class="upload-sub">Format : export sondedb.csv — tables concaténées</div>
         </label>
         <div style="margin-top:16px">
-          <label class="upload-zone" style="padding:12px 24px;display:flex;align-items:center;gap:10px;text-align:left" for="file-input-top">
+          <label class="upload-zone compact" for="file-input-top">
             <input type="file" id="file-input-top" accept=".csv" onchange="handleFile(this)">
-            <span style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px">Ou importez depuis la barre de navigation</span>
+            <span>Ou importez depuis la barre de navigation</span>
           </label>
         </div>
       </div>
@@ -492,612 +556,9 @@
 
 <div class="tooltip" id="tooltip"></div>
 
-<script>
-// ── State ─────────────────────────────────────────────────────────────────────
-const DB = { alertes:[], interventions:[], mesures:[], reseaux:[], sondes:[] };
-
-// Seuil hors-ligne : 3 × l'intervalle de scan firmware (15 s) + marge
-const OFFLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
-
-// Retourne 'online' | 'alert' | 'offline'
-function probeStatus(s) {
-  if (!s.last_seen) return 'offline';
-  const ts = new Date(s.last_seen.replace(' ', 'T')).getTime();
-  if (isNaN(ts) || Date.now() - ts > OFFLINE_THRESHOLD_MS) return 'offline';
-  return DB.alertes.some(a => a.id_sonde === s.id && a.niveau === 'critical') ? 'alert' : 'online';
-}
-
-// ── Données par défaut ────────────────────────────────────────────────────────
-function loadDefaultData() {
-  // Données initialisées vides — le dashboard est alimenté en temps réel par l'API MySQL.
-  // Les vraies données arrivent via live-data.js (polling /api/dashboard toutes les 8s).
-  DB.alertes       = [];
-  DB.interventions = [];
-  DB.mesures       = [];
-  DB.reseaux       = [];
-  DB.sondes        = [];
-}
-
-// ── CSV Parser ────────────────────────────────────────────────────────────────
-function parseCSV(text) {
-  const tables = { alertes:[], interventions:[], mesures:[], reseaux:[], sondes:[] };
-  const lines = text.trim().split('\n');
-  let currentTable = null, headers = [];
-  const tableMap = {
-    'id,id_sonde,type_alerte,description,niveau,horodatage':'alertes',
-    'id,id_sonde,technicien,description,date_intervention':'interventions',
-    'id,id_sonde,ssid,bssid,rssi,canal,horodatage':'mesures',
-    'id,ssid,bssid,canal,date_detection':'reseaux',
-    'id,nom,localisation,date_deploiement':'sondes',
-  };
-  for (const line of lines) {
-    const clean = line.replace(/"/g,'').trim();
-    if (!clean) continue;
-    const cols = clean.split(',');
-    const key = cols.join(',');
-    if (tableMap[key]) { currentTable = tableMap[key]; headers = cols; continue; }
-    if (currentTable && cols.length === headers.length) {
-      const row = {};
-      headers.forEach((h,i) => row[h] = cols[i]);
-      tables[currentTable].push(row);
-    }
-  }
-  if (tables.alertes.length)       DB.alertes       = tables.alertes;
-  if (tables.interventions.length) DB.interventions = tables.interventions;
-  if (tables.mesures.length)       DB.mesures       = tables.mesures;
-  if (tables.reseaux.length)       DB.reseaux       = tables.reseaux;
-  if (tables.sondes.length)        DB.sondes        = tables.sondes;
-}
-
-function handleFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    parseCSV(e.target.result);
-    renderAll();
-    document.getElementById('import-banner').style.display = 'flex';
-    document.getElementById('import-info-text').textContent =
-      `${file.name} importé — ${DB.mesures.length} mesures · ${DB.alertes.length} alertes · ${DB.sondes.length} sondes`;
-  };
-  reader.readAsText(file);
-}
-
-// ── Navigation ────────────────────────────────────────────────────────────────
-const titles = {
-  overview:'Vue générale', spectrum:'Spectre WiFi', alertes:'Alertes',
-  interventions:'Interventions', sondes:'Sondes', import:'Import données', detail:'Détail sonde',
-};
-
-function showSection(id, el) {
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
-  document.getElementById('page-title').textContent = titles[id] || id;
-}
-
-// ── Charts registry ───────────────────────────────────────────────────────────
-let charts = {};
-function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-
-const CHART_DEFAULTS = {
-  gridColor: 'rgba(255,255,255,0.04)',
-  tickColor: 'rgba(240,240,240,0.32)',
-  tickFont: { family:'JetBrains Mono', size:9 },
-  legendColor: 'rgba(240,240,240,0.32)',
-};
-
-// ── Render All ────────────────────────────────────────────────────────────────
-function renderAll() {
-  updateKPIs();
-  renderCanalGrid();
-  renderAlertesMini();
-  renderRSSIList();
-  renderSondeMap('sonde-map-nodes');
-  renderSondeMap('sonde-map-detail');
-  renderSpectrumChart();
-  renderCanalPie();
-  renderRSSIHist();
-  renderMesuresTable();
-  renderAlertesTable();
-  renderAlertesCharts();
-  renderTimeline();
-  renderInterventionChart();
-  renderSondesTable();
-  updateBadgeAlertes();
-  updateTime();
-}
-
-function updateKPIs() {
-  // Affiche '—' tant qu'aucune donnée live n'a été reçue de l'API
-  const fmt = n => n === 0 && !window._liveDataReceived ? '—' : n;
-  const onlineSondes = DB.sondes.filter(s => probeStatus(s) !== 'offline').length;
-  document.getElementById('kpi-sondes').textContent  = fmt(onlineSondes);
-  document.getElementById('kpi-reseaux').textContent = fmt(DB.reseaux.length);
-  document.getElementById('kpi-mesures').textContent = fmt(DB.mesures.length);
-  document.getElementById('kpi-alertes').textContent = fmt(DB.alertes.length);
-}
-
-function updateBadgeAlertes() {
-  const n = DB.alertes.filter(a => a.niveau === 'critical').length;
-  const b = document.getElementById('badge-alertes');
-  b.style.display = n > 0 ? 'block' : 'none';
-  const cb = document.getElementById('alertes-count-badge');
-  if (cb) cb.textContent = DB.alertes.length + ' alertes';
-}
-
-function updateTime() {
-  const now = new Date();
-  const time = now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const date = now.toLocaleDateString('fr-FR').replace(/\//g,'.').toUpperCase();
-  const el = document.getElementById('topbar-time');
-  if (el) el.textContent = time;
-  const de = document.getElementById('hdr-date-el');
-  if (de) de.textContent = date;
-  const lu = document.getElementById('last-update');
-  if (lu) lu.textContent = time;
-}
-
-// ── Canal Grid ────────────────────────────────────────────────────────────────
-function renderCanalGrid() {
-  const grid = document.getElementById('canal-grid');
-  const alertCanals = new Set(DB.alertes.map(a => {
-    const m = DB.mesures.find(m => m.id_sonde === a.id_sonde);
-    return m ? m.canal : null;
-  }).filter(Boolean));
-  const canalCount = {};
-  DB.mesures.forEach(m => { canalCount[m.canal] = (canalCount[m.canal] || 0) + 1; });
-  const maxCount = Math.max(...Object.values(canalCount), 1);
-  grid.innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12,13].map(c => {
-    const count = canalCount[c] || 0;
-    const h = count ? Math.max(20, Math.round((count / maxCount) * 110)) : 6;
-    const isAlert = alertCanals.has(String(c));
-    const cls = isAlert ? 'active' : count > 0 ? 'has-signal' : '';
-    return `<div class="canal-bar-wrap">
-      <div class="canal-bar ${cls}" style="height:${h}px"
-        onmouseover="showTooltip(event,'Canal ${c} — ${count} réseau(x)${isAlert ? ' · Alerte' : ''}')"
-        onmouseout="hideTooltip()"></div>
-      <div class="canal-label">${c}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── Alertes mini ──────────────────────────────────────────────────────────────
-function renderAlertesMini() {
-  const list = document.getElementById('alertes-mini-list');
-  if (!DB.alertes.length) {
-    list.innerHTML = '<div style="color:var(--dim);font-size:8px;padding:20px 0;text-align:center;text-transform:uppercase;letter-spacing:1.5px">Aucune alerte</div>';
-    return;
-  }
-  list.innerHTML = DB.alertes.slice(0, 8).map(a => `
-    <div class="alert-mini-row">
-      <span class="alert-lvl ${a.niveau}">${a.niveau}</span>
-      <div class="alert-main">
-        <div class="alert-type">${a.type_alerte}</div>
-        <div class="alert-desc">${a.description}</div>
-      </div>
-      <div class="alert-ts">${a.horodatage.split(' ')[0]}</div>
-    </div>`).join('');
-}
-
-// ── RSSI List ─────────────────────────────────────────────────────────────────
-function renderRSSIList() {
-  const el = document.getElementById('rssi-list');
-  if (!DB.mesures.length) {
-    el.innerHTML = '<div style="color:var(--dim);font-size:8px;padding:20px 0;text-transform:uppercase;letter-spacing:1.5px">Aucune mesure</div>';
-    return;
-  }
-  const unique = {};
-  DB.mesures.forEach(m => { if (!unique[m.ssid]) unique[m.ssid] = m; });
-  el.innerHTML = Object.values(unique).slice(0, 8).map(m => {
-    const rssi  = parseInt(m.rssi);
-    const pct   = Math.max(0, Math.min(100, ((rssi + 100) / 70) * 100));
-    const color = rssi > -60 ? 'var(--ok)' : rssi > -75 ? 'var(--warn)' : 'var(--danger)';
-    return `<div class="rssi-row">
-      <div class="rssi-ssid">${m.ssid}</div>
-      <div class="rssi-bar-track"><div class="rssi-bar-fill" style="width:${pct.toFixed(0)}%;background:${color}"></div></div>
-      <div class="rssi-val" style="color:${color}">${m.rssi} dBm</div>
-      <div class="rssi-canal">ch${m.canal}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── Sonde Map ─────────────────────────────────────────────────────────────────
-const sondePositions = [
-  {top:'42%',left:'38%'},{top:'65%',left:'62%'},{top:'30%',left:'70%'},
-  {top:'55%',left:'25%'},{top:'75%',left:'45%'},{top:'20%',left:'50%'},
-];
-function renderSondeMap(containerId) {
-  const c = document.getElementById(containerId);
-  if (!c) return;
-  c.innerHTML = DB.sondes.map((s, i) => {
-    const pos = sondePositions[i % sondePositions.length];
-    const status = probeStatus(s);
-    const color = status === 'alert' ? 'var(--danger)' : status === 'offline' ? 'var(--text3)' : 'var(--text)';
-    const offlineCls = status === 'offline' ? ' is-offline' : '';
-    return `<div class="sonde-node${offlineCls}" style="top:${pos.top};left:${pos.left}">
-      <div class="sonde-ring" style="border-color:${color}">
-        <div class="sonde-dot" style="background:${color}"></div>
-      </div>
-      <div class="sonde-label" style="color:${color}">${s.nom}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── Spectrum Chart ────────────────────────────────────────────────────────────
-function renderSpectrumChart() {
-  destroyChart('spectrum');
-  const canalData = {};
-  DB.mesures.forEach(m => {
-    const c = parseInt(m.canal);
-    if (!canalData[c]) canalData[c] = [];
-    canalData[c].push(parseInt(m.rssi));
-  });
-  const labels = Array.from({length:13},(_,i)=>i+1);
-  const data   = labels.map(c => { const v = canalData[c]; return v ? Math.max(...v) : -100; });
-  const alertCanals = new Set(DB.alertes.map(a => {
-    const m = DB.mesures.find(m => m.id_sonde === a.id_sonde);
-    return m ? parseInt(m.canal) : null;
-  }).filter(Boolean));
-  const colors = data.map((v,i) =>
-    alertCanals.has(i+1) ? 'rgba(255,45,45,0.85)' : v > -100 ? 'rgba(200,255,0,0.55)' : 'rgba(255,255,255,0.05)'
-  );
-  charts['spectrum'] = new Chart(document.getElementById('spectrumChart'), {
-    type:'bar',
-    data: {
-      labels: labels.map(l=>'Ch '+l),
-      datasets:[{ label:'RSSI max (dBm)', data, backgroundColor:colors,
-        borderColor:colors.map(c=>c.replace('0.55','0.9').replace('0.85','1')),
-        borderWidth:1, borderRadius:0 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false } },
-      scales:{
-        y:{ min:-110, max:-30,
-          grid:{ color:CHART_DEFAULTS.gridColor },
-          ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } },
-        x:{ grid:{ display:false },
-          ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } }
-      }
-    }
-  });
-}
-
-// ── Canal Pie ─────────────────────────────────────────────────────────────────
-function renderCanalPie() {
-  destroyChart('canalPie');
-  const counts = {};
-  DB.mesures.forEach(m => { counts['ch'+m.canal] = (counts['ch'+m.canal]||0)+1; });
-  const palettes = [
-    'rgba(200,255,0,0.75)','rgba(255,255,255,0.6)','rgba(255,45,45,0.7)',
-    'rgba(255,136,0,0.7)','rgba(0,230,118,0.6)','rgba(150,200,255,0.6)',
-    'rgba(200,255,0,0.4)','rgba(255,255,255,0.3)'
-  ];
-  const labels = Object.keys(counts);
-  charts['canalPie'] = new Chart(document.getElementById('canalPieChart'), {
-    type:'doughnut',
-    data:{ labels, datasets:[{ data:Object.values(counts), backgroundColor:palettes.slice(0,labels.length), borderWidth:0 }] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:true, position:'right',
-        labels:{ color:CHART_DEFAULTS.legendColor, font:CHART_DEFAULTS.tickFont, boxWidth:8, padding:8 } } }
-    }
-  });
-}
-
-// ── RSSI Hist ─────────────────────────────────────────────────────────────────
-function renderRSSIHist() {
-  destroyChart('rssiHist');
-  const ssids = [...new Set(DB.mesures.map(m=>m.ssid))].slice(0,4);
-  const palettes = ['rgba(200,255,0,0.9)','rgba(255,255,255,0.7)','rgba(255,45,45,0.8)','rgba(255,136,0,0.8)'];
-  const datasets = ssids.map((s,i) => ({
-    label:s,
-    data:DB.mesures.filter(m=>m.ssid===s).map(m=>parseInt(m.rssi)),
-    borderColor:palettes[i], backgroundColor:palettes[i].replace('0.9','0.08').replace('0.7','0.08').replace('0.8','0.08'),
-    tension:0.3, fill:false, pointRadius:3, borderWidth:1.5,
-  }));
-  const maxPts = Math.max(...datasets.map(d=>d.data.length));
-  charts['rssiHist'] = new Chart(document.getElementById('rssiHistChart'), {
-    type:'line',
-    data:{ labels:Array.from({length:maxPts},(_,i)=>'M'+(i+1)), datasets },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:true, position:'bottom',
-        labels:{ color:CHART_DEFAULTS.legendColor, font:CHART_DEFAULTS.tickFont, boxWidth:8 } } },
-      scales:{
-        y:{ min:-100, max:-40,
-          grid:{ color:CHART_DEFAULTS.gridColor },
-          ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } },
-        x:{ grid:{ display:false },
-          ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } }
-      }
-    }
-  });
-}
-
-// ── Mesures Table ─────────────────────────────────────────────────────────────
-function renderMesuresTable() {
-  document.getElementById('mesures-tbody').innerHTML = DB.mesures.map(m => {
-    const rssi = parseInt(m.rssi);
-    const color = rssi > -60 ? 'var(--ok)' : rssi > -75 ? 'var(--warn)' : 'var(--danger)';
-    return `<tr>
-      <td style="color:var(--accent)">${m.ssid}</td>
-      <td style="color:var(--text2);font-size:9px">${m.bssid}</td>
-      <td style="color:${color}">${m.rssi} dBm</td>
-      <td>${m.canal}</td>
-      <td>${DB.sondes.find(s=>s.id===m.id_sonde)?.nom||'S'+m.id_sonde}</td>
-      <td style="color:var(--text2);font-size:9px">${m.horodatage}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Alertes Table ─────────────────────────────────────────────────────────────
-let alerteFilter = 'all';
-function filterAlertes(f, btn) {
-  alerteFilter = f;
-  document.querySelectorAll('#filter-niveau .filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderAlertesTable();
-}
-function renderAlertesTable() {
-  const filtered = alerteFilter==='all' ? DB.alertes : DB.alertes.filter(a=>a.niveau===alerteFilter);
-  document.getElementById('alertes-tbody').innerHTML = filtered.map(a => {
-    const sonde = DB.sondes.find(s=>s.id===a.id_sonde);
-    return `<tr>
-      <td style="font-weight:600">${a.type_alerte}</td>
-      <td style="color:var(--text2)">${a.description}</td>
-      <td><span class="badge ${a.niveau}">${a.niveau}</span></td>
-      <td style="color:var(--dim)">${sonde?.nom||'Sonde '+a.id_sonde}</td>
-      <td style="color:var(--text2);font-size:9px">${a.horodatage}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Alertes Charts ────────────────────────────────────────────────────────────
-function renderAlertesCharts() {
-  destroyChart('alerteNiveau');
-  destroyChart('alerteType');
-  const niveaux = {};
-  DB.alertes.forEach(a=>{ niveaux[a.niveau]=(niveaux[a.niveau]||0)+1; });
-  const nColors = { critical:'rgba(255,45,45,0.8)', warning:'rgba(255,136,0,0.8)', info:'rgba(255,255,255,0.3)', ok:'rgba(0,230,118,0.7)' };
-  charts['alerteNiveau'] = new Chart(document.getElementById('alerteNiveauChart'), {
-    type:'doughnut',
-    data:{ labels:Object.keys(niveaux), datasets:[{ data:Object.values(niveaux),
-      backgroundColor:Object.keys(niveaux).map(k=>nColors[k]||'rgba(255,255,255,0.2)'), borderWidth:0 }] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:true, position:'right',
-        labels:{ color:CHART_DEFAULTS.legendColor, font:CHART_DEFAULTS.tickFont, boxWidth:8 } } } }
-  });
-  const types = {};
-  DB.alertes.forEach(a=>{ types[a.type_alerte]=(types[a.type_alerte]||0)+1; });
-  charts['alerteType'] = new Chart(document.getElementById('alerteTypeChart'), {
-    type:'bar',
-    data:{ labels:Object.keys(types), datasets:[{ data:Object.values(types),
-      backgroundColor:'rgba(255,45,45,0.65)', borderRadius:0, borderWidth:0 }] },
-    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
-      plugins:{ legend:{ display:false } },
-      scales:{
-        x:{ grid:{ color:CHART_DEFAULTS.gridColor }, ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } },
-        y:{ grid:{ display:false }, ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } }
-      }
-    }
-  });
-}
-
-// ── Timeline ──────────────────────────────────────────────────────────────────
-function renderTimeline() {
-  const el = document.getElementById('timeline-list');
-  if (!DB.interventions.length) {
-    el.innerHTML = '<div style="color:var(--dim);font-size:8px;padding:20px 0;text-transform:uppercase;letter-spacing:1.5px">Aucune intervention</div>';
-    return;
-  }
-  el.innerHTML = DB.interventions.map((iv,i) => {
-    const sonde = DB.sondes.find(s=>s.id===iv.id_sonde);
-    const last  = i===DB.interventions.length-1;
-    return `<div class="timeline-item">
-      <div class="timeline-dot-wrap">
-        <div class="timeline-dot"></div>
-        ${!last?'<div class="timeline-line"></div>':''}
-      </div>
-      <div class="timeline-content">
-        <div class="timeline-header">
-          <span class="timeline-tech">${iv.technicien}</span>
-          <span class="timeline-date">${iv.date_intervention?.split(' ')[0]||''}</span>
-        </div>
-        <div class="timeline-desc">${iv.description}</div>
-        <div class="timeline-sonde">${sonde?.nom||'Sonde '+iv.id_sonde} — ${sonde?.localisation||''}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── Intervention Chart ────────────────────────────────────────────────────────
-function renderInterventionChart() {
-  destroyChart('intervention');
-  const bySonde = {};
-  DB.interventions.forEach(iv => {
-    const sonde = DB.sondes.find(s=>s.id===iv.id_sonde);
-    const label = sonde?.nom||'S'+iv.id_sonde;
-    bySonde[label] = (bySonde[label]||0)+1;
-  });
-  charts['intervention'] = new Chart(document.getElementById('interventionChart'), {
-    type:'bar',
-    data:{ labels:Object.keys(bySonde), datasets:[{ data:Object.values(bySonde),
-      backgroundColor:'rgba(200,255,0,0.5)', borderRadius:0, borderWidth:0 }] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false } },
-      scales:{
-        y:{ grid:{ color:CHART_DEFAULTS.gridColor }, ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont, stepSize:1 } },
-        x:{ grid:{ display:false }, ticks:{ color:CHART_DEFAULTS.tickColor, font:CHART_DEFAULTS.tickFont } }
-      }
-    }
-  });
-}
-
-// ── Sondes Table ──────────────────────────────────────────────────────────────
-function renderSondesTable() {
-  document.getElementById('sondes-tbody').innerHTML = DB.sondes.map(s => {
-    const status = probeStatus(s);
-    const badge = status === 'alert'
-      ? '<span class="badge critical">Alerte</span>'
-      : status === 'offline'
-      ? '<span class="badge offline">Hors ligne</span>'
-      : '<span class="badge ok">Actif</span>';
-    return `<tr>
-      <td style="color:var(--dim)">${s.id}</td>
-      <td style="color:${status === 'offline' ? 'var(--text3)' : 'var(--accent)'}">${s.nom}</td>
-      <td style="color:${status === 'offline' ? 'var(--text3)' : ''}">${s.localisation}</td>
-      <td style="color:var(--text2);font-size:9px">${s.date_deploiement}</td>
-      <td>${badge}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Tooltip ───────────────────────────────────────────────────────────────────
-function showTooltip(e, text) {
-  const t = document.getElementById('tooltip');
-  t.textContent = text; t.style.display = 'block';
-  t.style.left = (e.clientX+12)+'px'; t.style.top = (e.clientY-28)+'px';
-}
-function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
-document.addEventListener('mousemove', e => {
-  const t = document.getElementById('tooltip');
-  if (t.style.display==='block') {
-    t.style.left=(e.clientX+12)+'px'; t.style.top=(e.clientY-28)+'px';
-  }
-});
-
-// ── Clock ─────────────────────────────────────────────────────────────────────
-setInterval(updateTime, 1000);
-
-// ── Video Scrubbing ───────────────────────────────────────────────────────────
-function initVideoScrubbing() {
-  const video     = document.getElementById('sonde-video');
-  const container = document.getElementById('video-scroll-container');
-  const fill      = document.getElementById('video-progress-fill');
-  const label     = document.getElementById('video-scroll-label');
-  if (!video || !container) return;
-  video.pause();
-  function scrub() {
-    const section = document.getElementById('sec-detail');
-    if (!section || !section.classList.contains('active')) return;
-    const rect = container.getBoundingClientRect();
-    const scrollable = container.offsetHeight - window.innerHeight;
-    if (scrollable <= 0) return;
-    const scrolled  = Math.max(0, -rect.top);
-    const progress  = Math.min(1, scrolled / scrollable);
-    if (video.readyState >= 1 && video.duration) {
-      video.currentTime = progress * video.duration;
-    }
-    if (fill)  fill.style.width = (progress*100).toFixed(2)+'%';
-    if (label) label.style.opacity = progress > 0.02 ? '0' : '1';
-  }
-  window.addEventListener('scroll', scrub, { passive:true });
-  video.addEventListener('loadedmetadata', scrub);
-}
-
-// ── Déconnexion ───────────────────────────────────────────────────────────────
-function doLogout() {
-  fetch('/api/logout', { method: 'GET', credentials: 'same-origin' })
-    .then(() => window.location.href = '/login')
-    .catch(() => window.location.href = '/login');
-}
-
-// ── Test WiFi ─────────────────────────────────────────────────────────────────
-async function lancerTestWifi() {
-  const panel    = document.getElementById('test-wifi-panel');
-  const results  = document.getElementById('test-results');
-  const label    = document.getElementById('test-status-label');
-  const spinner  = document.getElementById('test-spinner');
-  const scoreBadge = document.getElementById('test-score-badge');
-  const btn      = document.getElementById('btn-test-wifi');
-
-  panel.style.display = 'block';
-  results.innerHTML = '';
-  label.textContent = 'Analyse en cours…';
-  label.style.color = 'var(--accent)';
-  spinner.style.display = 'block';
-  scoreBadge.style.display = 'none';
-  btn.disabled = true;
-
-  // Forcer un refresh des données
-  try {
-    const res = await fetch('/api/dashboard?ts=' + Date.now(), { cache: 'no-store' });
-    const data = await res.json();
-    if (data.mesures) {
-      DB.mesures = data.mesures.map ? data.mesures : [];
-      DB.alertes = data.alertes || DB.alertes;
-    }
-  } catch(e) {}
-
-  await new Promise(r => setTimeout(r, 800)); // mini-délai pour l'animation
-
-  const mesures = DB.mesures;
-  if (!mesures || mesures.length === 0) {
-    label.textContent = 'Aucune mesure disponible — ESP32 non connecté ?';
-    label.style.color = 'var(--danger)';
-    spinner.style.display = 'none';
-    btn.disabled = false;
-    return;
-  }
-
-  // Grouper par BSSID : garder la mesure la plus récente
-  const byBssid = {};
-  for (const m of mesures) {
-    const key = m.bssid || m.ssid;
-    if (!byBssid[key] || m.horodatage > byBssid[key].horodatage) byBssid[key] = m;
-  }
-  const latest = Object.values(byBssid).sort((a,b) => parseInt(b.rssi) - parseInt(a.rssi));
-
-  // Score global : moyenne pondérée RSSI
-  const rssiVals = latest.map(m => parseInt(m.rssi)).filter(v => !isNaN(v));
-  const avgRssi  = rssiVals.length ? rssiVals.reduce((a,b)=>a+b,0)/rssiVals.length : -100;
-  const alertCount = (DB.alertes || []).filter(a => a.niveau === 'critical').length;
-
-  let scoreLabel, scoreColor;
-  if      (avgRssi >= -55 && alertCount === 0) { scoreLabel = 'EXCELLENT'; scoreColor = 'var(--ok)'; }
-  else if (avgRssi >= -65 && alertCount <= 1)  { scoreLabel = 'BON';       scoreColor = 'var(--ok)'; }
-  else if (avgRssi >= -75)                     { scoreLabel = 'MOYEN';     scoreColor = 'var(--warn)'; }
-  else                                          { scoreLabel = 'FAIBLE';    scoreColor = 'var(--danger)'; }
-
-  results.innerHTML = '';
-  for (const m of latest.slice(0, 15)) {
-    const rssi    = parseInt(m.rssi) || -100;
-    const pct     = Math.max(0, Math.min(100, ((rssi + 100) / 70) * 100));
-    const color   = rssi >= -55 ? 'var(--ok)' : rssi >= -70 ? 'var(--warn)' : 'var(--danger)';
-    const hasAlert = (DB.alertes||[]).some(a => a.description && (a.description.includes(m.ssid)||a.description.includes(m.bssid)));
-    const alertTag = hasAlert ? '<span style="font-size:7px;color:var(--danger);letter-spacing:1px;margin-left:8px">⚠ ALERTE</span>' : '';
-    results.innerHTML += `
-      <div style="display:grid;grid-template-columns:140px 1fr 70px 50px;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)">
-        <span style="font-size:9px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${m.ssid}">${m.ssid}${alertTag}</span>
-        <div style="height:4px;background:var(--bg3);position:relative">
-          <div style="position:absolute;left:0;top:0;height:100%;width:${pct.toFixed(1)}%;background:${color};transition:width .6s ease"></div>
-        </div>
-        <span style="font-size:9px;color:${color};text-align:right;font-weight:700">${rssi} dBm</span>
-        <span style="font-size:8px;color:var(--dim);text-align:right">ch${m.canal}</span>
-      </div>`;
-  }
-
-  spinner.style.display = 'none';
-  label.textContent = `Test terminé — ${latest.length} réseau(x) analysé(s)`;
-  label.style.color = 'var(--dim)';
-  scoreBadge.textContent = scoreLabel;
-  scoreBadge.style.color = scoreColor;
-  scoreBadge.style.borderColor = scoreColor;
-  scoreBadge.style.display = 'inline-block';
-  btn.disabled = false;
-
-  renderAll();
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-loadDefaultData();
-renderAll();
-initVideoScrubbing();
-</script>
+<!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
+<script src="js/dashboard.js"></script>
+<script src="js/speedtest.js"></script>
 <script src="js/live-data.js"></script>
 </body>
 </html>
