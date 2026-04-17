@@ -69,4 +69,4 @@ VALUES (
     'pbkdf2:sha256:200000$736f6e646564625f73346c745f763121$4c1274bf640443aa50f7fd2fcfabfd588e875792438620adc10c569135b0ce5b',
     NOW()
 )
-ON DUPLICATE KEY UPDATE username = username;
+ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);

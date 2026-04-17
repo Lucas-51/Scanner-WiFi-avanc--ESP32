@@ -19,6 +19,7 @@ import os
 import re
 import secrets
 import threading
+import traceback
 from datetime import datetime
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -294,6 +295,21 @@ def _ensure_database_exists() -> None:
         )
 
 
+def _ensure_users_columns() -> None:
+    """Ajoute password_hash si la table users existait sans cette colonne."""
+    with mysql_cursor(with_database=True, commit=True) as cursor:
+        cursor.execute(
+            "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'users' AND COLUMN_NAME = 'password_hash'",
+            (CONFIG["db_name"],),
+        )
+        row = cursor.fetchone()
+        if row and row["cnt"] == 0:
+            cursor.execute(
+                "ALTER TABLE users ADD COLUMN password_hash VARCHAR(255) NOT NULL DEFAULT '' AFTER username"
+            )
+
+
 def ensure_schema() -> None:
     """Initialise la base + schéma principal + schéma users (idempotent)."""
     global _SCHEMA_READY
@@ -312,6 +328,7 @@ def ensure_schema() -> None:
 
         _run_schema_file(SCHEMA_PATH, tolerate_errors=False)
         _run_schema_file(USERS_SCHEMA_PATH, tolerate_errors=True)
+        _ensure_users_columns()
         _SCHEMA_READY = True
 
 
@@ -746,6 +763,7 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
         try:
             ok = check_user_credentials(username, password)
         except Exception as exc:
+            traceback.print_exc()
             return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
         if not ok:
@@ -785,6 +803,7 @@ class SondeDBHandler(SimpleHTTPRequestHandler):
         try:
             result = ingest_payload(payload)
         except Exception as exc:
+            traceback.print_exc()
             return self.send_api_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
         self.send_json(HTTPStatus.CREATED, result)
