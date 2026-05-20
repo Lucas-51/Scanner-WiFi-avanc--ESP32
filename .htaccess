@@ -1,0 +1,19 @@
+DirectoryIndex index.php
+
+# Protège les fichiers sensibles
+<FilesMatch "^(config\.php|db\.php|\.env.*)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|md|ino|py)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # /login -> login.html (compat avec les anciens liens JS)
+    RewriteRule ^login/?$ login.html [L]
+
+    # Toutes les routes /api/* vers le routeur unique
+    RewriteRule ^api(/.*)?$ api.php [QSA,L]
+</IfModule>

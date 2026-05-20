@@ -1,135 +1,91 @@
-# SondeDB ESP32 + MySQL
+# SondeDB — ESP32 + MySQL + PHP
 
-Ce projet relie maintenant trois blocs:
+Stack ultra simple : Apache + PHP + MySQL. Trois briques :
 
-- un sketch ESP32 qui scanne les réseaux WiFi visibles et remonte les anomalies simples de type Evil Twin ;
-- une API Python légère qui reçoit les POST de la sonde et lit/écrit dans MySQL ;
-- le dashboard existant, désormais synchronisé en direct avec l'API au lieu de rester sur des données statiques.
+- un sketch ESP32 qui scanne les réseaux WiFi et remonte les alertes Evil Twin ;
+- une mini-API PHP (`api.php`) qui reçoit les POST de la sonde et lit/écrit MySQL ;
+- un dashboard HTML/JS servi par Apache.
 
-## 1. Configuration MySQL
+## Déploiement sur Ubuntu (10.1.40.51)
 
-Le serveur d'application lit sa config dans `.env`. Tu peux partir de `.env.example` :
-
-```bash
-cp .env.example .env
-```
-
-Puis renseigner au minimum :
-
-```env
-DB_HOST=10.1.40.51
-DB_PORT=3306
-DB_NAME=sondedb
-DB_USER=ton_user_mysql
-DB_PASSWORD=ton_mot_de_passe
-API_TOKEN=un_token_partage_avec_les_esp32
-```
-
-Le script essaie de créer la base si elle n'existe pas, puis applique automatiquement le schéma de [`sql/schema.mysql.sql`](sql/schema.mysql.sql), désormais aligné sur ton dump `sondedb_english.sql` :
-
-- `probes`
-- `wifi_networks`
-- `measurements`
-- `alerts`
-- `interventions`
-
-## 2. Démarrage du serveur
-
-Installe la dépendance MySQL Python :
+Sur le serveur (Apache + MySQL + phpMyAdmin déjà installés) :
 
 ```bash
-python3 -m pip install -r requirements.txt
+# 1. Activer mod_rewrite (une seule fois)
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+
+# 2. S'assurer que AllowOverride All est autorisé dans /etc/apache2/apache2.conf
+#    pour le DocumentRoot (généralement /var/www/html).
+
+# 3. Installer le module PHP MySQL si pas déjà fait
+sudo apt install php php-mysql -y
 ```
 
-Si macOS bloque l'installation système, utilise un environnement virtuel local :
+Depuis ton Mac :
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
+cd "Scanner WiFi avancé ESP32"
+scp -r .htaccess api.php config.php db.php index.php login.html \
+       sondedb_dashboard.html css js media sql firmware \
+       lucas@10.1.40.51:/var/www/html/
 ```
 
-Puis lance l'application :
+Puis sur le serveur :
 
 ```bash
-python3 server.py
+# Créer la base + tables
+mysql -u root -p < /var/www/html/sql/sondedb.sql
+
+# Permissions
+sudo chown -R www-data:www-data /var/www/html
 ```
 
-ou, si tu utilises le `venv` :
+Édite `/var/www/html/config.php` pour mettre tes vraies creds MySQL et un nouveau token API.
 
-```bash
-.venv/bin/python server.py
-```
+Le dashboard est alors disponible sur `http://10.1.40.51/`.
+Login par défaut : `admin` / `admin1234` (à changer immédiatement).
 
-Ensuite ouvre le dashboard via :
+## Endpoints API
 
-```text
-http://localhost:8080
-```
+- `GET  /api/health`              — ping API + MySQL
+- `POST /api/login`               — auth (form-urlencoded `username`/`password`)
+- `GET  /api/logout`              — destruction de session
+- `GET  /api/dashboard`           — payload normalisé (auth requise)
+- `POST /api/ingest`              — ingestion JSON ESP32 (token)
+- `POST /api/purge`               — supprime mesures + alertes (5/15/30/60 min)
+- `GET  /api/probe/{id}/sync`     — config/état pour l'ESP32 (token)
+- `POST /api/probe/{id}/settings` — modification config (auth requise)
 
-Si tu déploies aussi `server.py` sur la machine `10.1.40.51`, l'URL à utiliser pour l'ESP32 sera alors `http://10.1.40.51:8080/api/ingest`.
-
-## 3. Flash de l'ESP32
-
-Le sketch est dans [`firmware/esp32_wifi_probe/esp32_wifi_probe.ino`](firmware/esp32_wifi_probe/esp32_wifi_probe.ino).
-
-Avant compilation, remplace :
-
-- `WIFI_SSID` et `WIFI_PASSWORD`
-- `API_URL`
-- `API_TOKEN`
-- `PROBE_ID` avec l'identifiant numérique déjà présent dans la table `probes`
-- `trustedAps[]` avec tes SSID/BSSID légitimes
-
-Le sketch :
-
-- scanne périodiquement les réseaux visibles ;
-- envoie les mesures RSSI/canal/BSSID à l'API ;
-- génère une alerte `Evil Twin` si un SSID déclaré comme légitime apparaît avec un autre BSSID ;
-- génère une alerte `SSID duplique` si plusieurs BSSID diffusent le même SSID dans un scan.
-
-## 4. Format JSON envoyé par l'ESP32
+## Format JSON envoyé par l'ESP32
 
 ```json
 {
-  "probe": {
-    "id": 1,
-    "name": "ESP32-LAB",
-    "location": "Laboratoire BTS CIEL",
-    "firmware_version": "sondedb-esp32-v1",
-    "status": "active"
-  },
-  "measurements": [
-    {
-      "ssid": "MonWifiEntreprise",
-      "bssid": "AA:BB:CC:DD:EE:FF",
-      "rssi": -62,
-      "channel": 6
-    }
-  ],
-  "alerts": [
-    {
-      "type": "Evil Twin",
-      "description": "SSID autorise detecte avec un BSSID non approuve",
-      "level": "critical"
-    }
-  ]
+  "probe":  { "id": 1, "name": "ESP32-LAB", "location": "Lab CIEL" },
+  "measurements": [ { "ssid": "...", "bssid": "AA:BB:..", "rssi": -62, "channel": 6 } ],
+  "alerts": [ { "type": "Evil Twin", "description": "...", "level": "critical" } ]
 }
 ```
 
-## 5. Endpoints disponibles
+L'ESP32 doit envoyer le header `X-API-Token: <token>` (ou `Authorization: Bearer …`).
 
-- `GET /api/health` : test rapide de l'API et de la connexion MySQL
-- `GET /api/dashboard` : données normalisées consommées par le dashboard
-- `POST /api/ingest` : ingestion des scans ESP32
+## Firmware
 
-## 6. Mapping vers le dashboard
+Sketch dans `firmware/esp32_wifi_probe/esp32_wifi_probe.ino`.
+Avant compilation, remplace `WIFI_SSID`, `WIFI_PASSWORD`, `API_URL`
+(`http://10.1.40.51/api/ingest`), `API_TOKEN`, `PROBE_ID`, et `trustedAps[]`.
 
-Le dashboard conserve ses libellés français, mais l'API fait maintenant la traduction automatique depuis ton schéma SQL anglais :
+## Structure
 
-- `probes.name` → `nom`
-- `probes.location` → `localisation`
-- `measurements.channel` → `canal`
-- `measurements.timestamp` → `horodatage`
-- `alerts.alert_type` → `type_alerte`
-- `alerts.severity` → niveau d'affichage du dashboard
+```
+config.php         creds MySQL + token API
+db.php             PDO + helpers (auth PBKDF2, JSON, normalisation)
+api.php            routeur unique pour /api/*
+index.php          dashboard (redirige vers login si pas de session)
+login.html         page de connexion
+sondedb_dashboard.html   dashboard HTML
+.htaccess          rewrite mod_rewrite : /api/* -> api.php
+css/, js/, media/  assets statiques
+sql/sondedb.sql    schéma complet + admin par défaut
+firmware/          sketch ESP32
+```

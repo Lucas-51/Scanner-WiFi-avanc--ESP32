@@ -1,8 +1,13 @@
+CREATE DATABASE IF NOT EXISTS sondedb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE sondedb;
+
 CREATE TABLE IF NOT EXISTS probes (
     id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
     location VARCHAR(100) NOT NULL,
     deploy_date DATETIME NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    config_pending JSON NULL,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
