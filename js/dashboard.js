@@ -24,9 +24,9 @@
 
   /** Couleur RSSI : vert > orange > rouge selon seuils dBm */
   function rssiColor(rssi) {
-    if (rssi > -60) return 'var(--ok)';
-    if (rssi > -75) return 'var(--warn)';
-    return 'var(--danger)';
+    if (rssi > -60) return '#16a34a';
+    if (rssi > -75) return '#d97706';
+    return '#dc2626';
   }
 
   /** État d'une sonde selon dernier scan + alertes critiques */
@@ -101,10 +101,10 @@
   function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
   const CH = {
-    grid:  'rgba(255,255,255,0.04)',
-    tick:  'rgba(240,240,240,0.32)',
-    legend:'rgba(240,240,240,0.32)',
-    font:  { family:'JetBrains Mono', size:9 },
+    grid:  'rgba(0,0,0,0.07)',
+    tick:  '#6b7280',
+    legend:'#4b5563',
+    font:  { family:'JetBrains Mono', size:10 },
   };
 
   const axisStyle = ({ hideGrid = false } = {}) => ({
@@ -282,9 +282,9 @@
     );
 
     const colors = data.map((v, i) =>
-      alertCanals.has(i+1) ? 'rgba(255,45,45,0.85)'
-      : v > -100 ? 'rgba(200,255,0,0.55)'
-      : 'rgba(255,255,255,0.05)'
+      alertCanals.has(i+1) ? '#dc2626'
+      : v > -100 ? '#2563eb'
+      : '#e5e7eb'
     );
 
     charts.spectrum = new Chart(ctx, {
@@ -310,9 +310,9 @@
 
   // ── Canal Pie ───────────────────────────────────────────────────────────────
   const PIE_PALETTE = [
-    'rgba(200,255,0,0.75)','rgba(255,255,255,0.6)','rgba(255,45,45,0.7)',
-    'rgba(255,136,0,0.7)','rgba(0,230,118,0.6)','rgba(150,200,255,0.6)',
-    'rgba(200,255,0,0.4)','rgba(255,255,255,0.3)',
+    '#2563eb','#16a34a','#dc2626',
+    '#d97706','#0891b2','#7c3aed',
+    '#db2777','#65a30d',
   ];
 
   function renderCanalPie() {
@@ -346,8 +346,7 @@
 
   // ── RSSI Histogram ──────────────────────────────────────────────────────────
   const HIST_COLORS = [
-    'rgba(200,255,0,0.9)','rgba(255,255,255,0.7)',
-    'rgba(255,45,45,0.8)','rgba(255,136,0,0.8)',
+    '#2563eb','#16a34a','#dc2626','#d97706',
   ];
 
   function renderRSSIHist() {
@@ -468,8 +467,8 @@
 
   // ── Alertes Charts ──────────────────────────────────────────────────────────
   const NIVEAU_COLORS = {
-    critical:'rgba(255,45,45,0.8)', warning:'rgba(255,136,0,0.8)',
-    info:'rgba(255,255,255,0.3)',   ok:'rgba(0,230,118,0.7)',
+    critical:'#dc2626', warning:'#d97706',
+    info:'#2563eb',     ok:'#16a34a',
   };
 
   function renderAlertesCharts() {
@@ -660,24 +659,18 @@
 
     function tick() {
       rafId = null;
-      // Easing: lerp entre position actuelle et cible → rendu ultra fluide
       const diff = targetProgress - currentProgress;
-      if (Math.abs(diff) > 0.0005) {
-        currentProgress += diff * 0.12;
+      if (Math.abs(diff) > 0.0002) {
+        currentProgress += diff * 0.07; // lerp doux : glisse vers la cible
         schedule();
       } else {
         currentProgress = targetProgress;
       }
 
       if (video.readyState >= 2 && video.duration) {
-        const t = currentProgress * video.duration;
-        // Évite les writes inutiles (>16ms diff)
-        if (Math.abs(t - lastRenderedTime) > 0.016) {
-          video.currentTime = t;
-          lastRenderedTime = t;
-        }
+        video.currentTime = currentProgress * video.duration; // pas de seuil → max fluidité
       }
-      if (fill)  fill.style.width = (currentProgress * 100).toFixed(2) + '%';
+      if (fill)  fill.style.width = (currentProgress * 100).toFixed(3) + '%';
       if (label) label.style.opacity = currentProgress > 0.02 ? '0' : '1';
     }
 
@@ -709,16 +702,19 @@
   window.doLogout = doLogout;
   window.filterAlertes = filterAlertes;
 
-  window.purgeData = async function(minutes) {
-    const labels = { 5:'5 min', 15:'15 min', 30:'30 min', 60:'1 heure' };
+  window.purgeData = async function(scope) {
+    const labels = { 5:'5 min', 15:'15 min', 30:'30 min', 60:'1 heure', all:'TOUTES LES DONNÉES' };
     const fb = $('purge-feedback');
-    if (!confirm(`Supprimer toutes les mesures et alertes des ${labels[minutes]} ? Cette action est irréversible.`)) return;
+    const msg = scope === 'all'
+      ? `⚠ Supprimer DÉFINITIVEMENT toutes les mesures et alertes de la base ? Cette action est irréversible.`
+      : `Supprimer toutes les mesures et alertes des ${labels[scope]} ? Cette action est irréversible.`;
+    if (!confirm(msg)) return;
     if (fb) fb.textContent = 'Suppression…';
     try {
       const r = await fetch('/api/purge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minutes }),
+        body: JSON.stringify(scope === 'all' ? { scope: 'all' } : { minutes: scope }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || r.status);

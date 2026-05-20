@@ -73,8 +73,8 @@
         labels: points.map((_, i) => i),
         datasets: [{
           data: points,
-          borderColor: 'rgba(200,255,0,0.85)',
-          backgroundColor: 'rgba(200,255,0,0.08)',
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,0.08)',
           fill: true, tension: 0.4,
           borderWidth: 1.3, pointRadius: 0,
         }],
@@ -212,8 +212,8 @@
           labels, datasets: [{
             label: 'RSSI (dBm)',
             data,
-            borderColor: 'rgba(200,255,0,0.9)',
-            backgroundColor: 'rgba(200,255,0,0.08)',
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.08)',
             fill: true, tension: 0.35,
             borderWidth: 1.5, pointRadius: 2,
           }],
@@ -224,12 +224,10 @@
           plugins: { legend: { display: false } },
           scales: {
             y: { min:-100, max:-30,
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: { color: 'rgba(240,240,240,0.3)',
-                       font: { family:'JetBrains Mono', size:9 } } },
+              grid: { color: 'rgba(0,0,0,0.07)' },
+              ticks: { color: '#9ca3af', font: { family:'JetBrains Mono', size:9 } } },
             x: { grid: { display: false },
-              ticks: { color: 'rgba(240,240,240,0.3)',
-                       font: { family:'JetBrains Mono', size:8 } } },
+              ticks: { color: '#9ca3af', font: { family:'JetBrains Mono', size:8 } } },
           },
         },
       });
@@ -349,9 +347,66 @@
 
     if (btn) btn.disabled = false;
     speedtest.running = false;
+
+    // Lance la mesure download/upload après le test RSSI
+    await measureBandwidth();
   }
 
   function stopSpeedtest() { speedtest.running = false; }
+
+  // ══ Mesure bande passante download / upload ════════════════════════════════
+  async function measureBandwidth() {
+    const bwSection = $('st-bw-section');
+    const dlEl      = $('st-dl');
+    const ulEl      = $('st-ul');
+    const dlBar     = $('st-dl-bar');
+    const ulBar     = $('st-ul-bar');
+    const dlCard    = $('st-bw-dl');
+    const ulCard    = $('st-bw-ul');
+
+    if (bwSection) bwSection.style.display = 'grid';
+    if (dlEl) dlEl.textContent = '…';
+    if (ulEl) ulEl.textContent = '…';
+    if (dlBar) dlBar.style.width = '0%';
+    if (ulBar) ulBar.style.width = '0%';
+    if (dlCard) dlCard.classList.add('is-testing');
+    if (ulCard) ulCard.classList.add('is-testing');
+
+    // ── Download ──────────────────────────────────────────────────────────────
+    let dlMbps = null;
+    try {
+      const SIZE = 2 * 1024 * 1024; // 2 MB
+      const t0 = performance.now();
+      const res = await fetch(`/api/speedtest/download?ts=${Date.now()}`, {
+        cache: 'no-store', credentials: 'same-origin',
+      });
+      await res.arrayBuffer();
+      const secs = (performance.now() - t0) / 1000;
+      dlMbps = (SIZE * 8 / 1_000_000) / secs;
+      if (dlEl) dlEl.textContent = dlMbps.toFixed(1);
+      if (dlBar) dlBar.style.width = Math.min(100, dlMbps / 1000 * 100) + '%';
+    } catch {
+      if (dlEl) dlEl.textContent = 'err';
+    }
+    if (dlCard) dlCard.classList.remove('is-testing');
+
+    // ── Upload ────────────────────────────────────────────────────────────────
+    try {
+      const SIZE = 1 * 1024 * 1024; // 1 MB
+      const data = new Uint8Array(SIZE);
+      const t0 = performance.now();
+      await fetch('/api/speedtest/upload', {
+        method: 'POST', body: data, credentials: 'same-origin',
+      });
+      const secs = (performance.now() - t0) / 1000;
+      const ulMbps = (SIZE * 8 / 1_000_000) / secs;
+      if (ulEl) ulEl.textContent = ulMbps.toFixed(1);
+      if (ulBar) ulBar.style.width = Math.min(100, ulMbps / 1000 * 100) + '%';
+    } catch {
+      if (ulEl) ulEl.textContent = 'err';
+    }
+    if (ulCard) ulCard.classList.remove('is-testing');
+  }
 
   // ══ Init ════════════════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', () => {

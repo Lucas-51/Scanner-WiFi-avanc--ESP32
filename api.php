@@ -190,11 +190,23 @@ try {
     if ($method === 'POST' && $path === '/api/purge') {
         require_login();
         $body = read_json_body();
+        $pdo = db();
+
+        if (($body['scope'] ?? '') === 'all') {
+            // Tout supprimer : mesures, alertes, et réseaux détectés
+            $dm = $pdo->exec("DELETE FROM measurements");
+            $da = $pdo->exec("DELETE FROM alerts");
+            $dn = $pdo->exec("DELETE FROM wifi_networks");
+            send_json(200, ['status'=>'ok','scope'=>'all',
+                            'deleted_measurements'=>(int)$dm,
+                            'deleted_alerts'=>(int)$da,
+                            'deleted_networks'=>(int)$dn]);
+        }
+
         $minutes = norm_int($body['minutes'] ?? 0);
         if (!in_array($minutes, [5,15,30,60], true)) {
-            send_error(400, 'Intervalle invalide. Valeurs : 5, 15, 30, 60.');
+            send_error(400, 'Intervalle invalide. Valeurs : 5, 15, 30, 60 ou scope=all.');
         }
-        $pdo = db();
         $st = $pdo->prepare("DELETE FROM measurements WHERE timestamp >= NOW() - INTERVAL ? MINUTE");
         $st->bindValue(1, $minutes, PDO::PARAM_INT); $st->execute();
         $dm = $st->rowCount();
@@ -243,6 +255,23 @@ try {
                 ->execute([$active ? 1 : 0, $id]);
         }
         send_json(200, ['status' => 'ok']);
+    }
+
+    // GET /api/speedtest/download — chunk de 2 Mo pour mesurer la bande passante descendante
+    if ($method === 'GET' && $path === '/api/speedtest/download') {
+        $size = 2 * 1024 * 1024; // 2 MB
+        header('Content-Type: application/octet-stream');
+        header('Content-Length: ' . $size);
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Access-Control-Allow-Origin: *');
+        echo str_repeat('X', $size);
+        exit;
+    }
+
+    // POST /api/speedtest/upload — reçoit les données et renvoie la taille mesurée
+    if ($method === 'POST' && $path === '/api/speedtest/upload') {
+        $data = file_get_contents('php://input');
+        send_json(200, ['received_bytes' => strlen($data), 'status' => 'ok']);
     }
 
     send_error(404, 'Point d\'entrée API introuvable.');

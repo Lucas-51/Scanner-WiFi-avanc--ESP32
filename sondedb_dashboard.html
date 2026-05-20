@@ -176,6 +176,24 @@
           <div class="speedtest-stat-val"><span id="speedtest-count">—</span></div>
         </div>
       </div>
+
+      <!-- Bande passante download / upload -->
+      <div class="st-bw-grid" id="st-bw-section" style="display:none">
+        <div class="st-bw-item" id="st-bw-dl">
+          <div class="st-bw-arrow" style="color:#16a34a">↓</div>
+          <div class="st-bw-val" id="st-dl">—</div>
+          <div class="st-bw-unit">Mbps</div>
+          <div class="st-bw-lbl">Download</div>
+          <div class="st-bw-bar"><div class="st-bw-bar-fill" id="st-dl-bar"></div></div>
+        </div>
+        <div class="st-bw-item" id="st-bw-ul">
+          <div class="st-bw-arrow" style="color:#2563eb">↑</div>
+          <div class="st-bw-val" id="st-ul">—</div>
+          <div class="st-bw-unit">Mbps</div>
+          <div class="st-bw-lbl">Upload</div>
+          <div class="st-bw-bar"><div class="st-bw-bar-fill" id="st-ul-bar"></div></div>
+        </div>
+      </div>
     </div>
 
     <div class="band">
@@ -290,6 +308,10 @@
         <button onclick="purgeData(15)" class="filter-btn">15 min</button>
         <button onclick="purgeData(30)" class="filter-btn">30 min</button>
         <button onclick="purgeData(60)" class="filter-btn">1 heure</button>
+        <button onclick="purgeData('all')" class="filter-btn"
+                style="background:#fef2f2;color:var(--danger);border-color:#fecaca;font-weight:700">
+          ⚠ Tout supprimer
+        </button>
         <span id="purge-feedback" style="font-size:10px;color:var(--accent);margin-left:8px;"></span>
       </div>
     </div>

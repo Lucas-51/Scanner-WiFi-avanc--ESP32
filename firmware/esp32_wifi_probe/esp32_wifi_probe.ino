@@ -4,7 +4,7 @@
 #include <Preferences.h>   // stockage flash interne ESP32
 
 // ── Config runtime (chargée depuis le flash) ──────────────────────────────────
-char g_apiUrl[128]    = "http://10.1.40.51:8080/api/ingest";
+char g_apiUrl[128]    = "http://10.1.40.51/api/ingest";
 char g_apiToken[80]   = "";
 char g_probeName[50]  = "ESP32-LAB";
 char g_probeLoc[100]  = "Non configuree";
@@ -170,22 +170,18 @@ String buildPayload() {
       }
     }
 
-    // ── Détection SSID dupliqué (Rogue AP potentiel) ──────────────────────────
+    // ── Détection SSID dupliqué — uniquement pour les APs de confiance ──────────
     for (int s = 0; s < seenCount; s++) {
-      if (seenSsids[s] == ssid && seenBssids[s] != bssid) {
+      bool isTrusted = false;
+      for (int t = 0; t < TRUSTED_AP_COUNT; t++) {
+        if (sameText(ssid, trustedAps[t].ssid)) { isTrusted = true; break; }
+      }
+      if (isTrusted && seenSsids[s] == ssid && seenBssids[s] != bssid) {
         addAlert(alerts, alertCount,
           "SSID duplique",
           "Plusieurs BSSID diffusent le meme SSID: " + ssid,
           "warning");
       }
-    }
-
-    // ── Détection signal faible ────────────────────────────────────────────────
-    if (rssi < RSSI_WEAK_THRESHOLD) {
-      addAlert(alerts, alertCount,
-        "Signal faible",
-        "RSSI de " + String(rssi) + " dBm sur " + ssid + " (" + bssid + ")",
-        "info");
     }
 
     if (seenCount < MAX_NETWORKS_PER_PUSH) {
@@ -196,16 +192,6 @@ String buildPayload() {
   }
 
   payload += "],";
-
-  // ── Détection congestion de canal (après la boucle) ──────────────────────────
-  for (int ch = 1; ch <= 14; ch++) {
-    if (channelCount[ch] >= CHANNEL_CROWD_THRESHOLD) {
-      addAlert(alerts, alertCount,
-        "Congestion canal",
-        String(channelCount[ch]) + " reseaux detectes sur le canal " + String(ch) + " (2.4 GHz)",
-        "warning");
-    }
-  }
 
   payload += "\"alerts\":[";
   for (int i = 0; i < alertCount; i++) {
