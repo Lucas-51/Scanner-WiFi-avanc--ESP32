@@ -1,12 +1,12 @@
 /* SondeDB — Dashboard (rendu + navigation + charts)
  * Expose : window.DB, window.renderAll, window.showSection,
- *          window.handleFile, window.doLogout, window.filterAlertes
+ *          window.doLogout, window.filterAlertes
  */
 (() => {
   'use strict';
 
   // ── État central ────────────────────────────────────────────────────────────
-  const DB = { alertes:[], interventions:[], mesures:[], reseaux:[], sondes:[] };
+  const DB = { alertes:[], mesures:[], reseaux:[], sondes:[] };
   const OFFLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 × 15 s + marge
 
   // ── Utils ───────────────────────────────────────────────────────────────────
@@ -35,48 +35,6 @@
     if (!ts || Date.now() - ts > OFFLINE_THRESHOLD_MS) return 'offline';
     return DB.alertes.some(a => a.id_sonde === s.id && a.niveau === 'critical')
       ? 'alert' : 'online';
-  }
-
-  // ── CSV Import ──────────────────────────────────────────────────────────────
-  const TABLE_MAP = {
-    'id,id_sonde,type_alerte,description,niveau,horodatage': 'alertes',
-    'id,id_sonde,technicien,description,date_intervention' : 'interventions',
-    'id,id_sonde,ssid,bssid,rssi,canal,horodatage'         : 'mesures',
-    'id,ssid,bssid,canal,date_detection'                   : 'reseaux',
-    'id,nom,localisation,date_deploiement'                 : 'sondes',
-  };
-
-  function parseCSV(text) {
-    const tables = { alertes:[], interventions:[], mesures:[], reseaux:[], sondes:[] };
-    let table = null, headers = [];
-    for (const raw of text.trim().split('\n')) {
-      const line = raw.replace(/"/g, '').trim();
-      if (!line) continue;
-      const cols = line.split(',');
-      const key = cols.join(',');
-      if (TABLE_MAP[key]) { table = TABLE_MAP[key]; headers = cols; continue; }
-      if (table && cols.length === headers.length) {
-        const row = {};
-        headers.forEach((h, i) => row[h] = cols[i]);
-        tables[table].push(row);
-      }
-    }
-    for (const k of Object.keys(tables)) if (tables[k].length) DB[k] = tables[k];
-  }
-
-  function handleFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      parseCSV(e.target.result);
-      renderAll();
-      const banner = $('import-banner');
-      if (banner) banner.style.display = 'flex';
-      setText('import-info-text',
-        `${file.name} importé — ${DB.mesures.length} mesures · ${DB.alertes.length} alertes · ${DB.sondes.length} sondes`);
-    };
-    reader.readAsText(file);
   }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
@@ -517,65 +475,6 @@
   }
 
   // ── Timeline ────────────────────────────────────────────────────────────────
-  function renderTimeline() {
-    const el = $('timeline-list');
-    if (!el) return;
-    if (!DB.interventions.length) {
-      el.innerHTML = '<div class="empty-msg">Aucune intervention</div>';
-      return;
-    }
-    el.innerHTML = DB.interventions.map((iv, i) => {
-      const sonde = DB.sondes.find(s => s.id === iv.id_sonde);
-      const last = i === DB.interventions.length - 1;
-      return `<div class="timeline-item">
-        <div class="timeline-dot-wrap">
-          <div class="timeline-dot"></div>
-          ${!last ? '<div class="timeline-line"></div>' : ''}
-        </div>
-        <div class="timeline-content">
-          <div class="timeline-header">
-            <span class="timeline-tech">${esc(iv.technicien)}</span>
-            <span class="timeline-date">${esc((iv.date_intervention||'').split(' ')[0])}</span>
-          </div>
-          <div class="timeline-desc">${esc(iv.description)}</div>
-          <div class="timeline-sonde">${esc(sonde?.nom || 'Sonde ' + iv.id_sonde)} — ${esc(sonde?.localisation || '')}</div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Intervention Chart ──────────────────────────────────────────────────────
-  function renderInterventionChart() {
-    destroyChart('intervention');
-    const ctx = $('interventionChart');
-    if (!ctx) return;
-    const bySonde = {};
-    DB.interventions.forEach(iv => {
-      const sonde = DB.sondes.find(s => s.id === iv.id_sonde);
-      const key = sonde?.nom || ('S' + iv.id_sonde);
-      bySonde[key] = (bySonde[key] || 0) + 1;
-    });
-    charts.intervention = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: Object.keys(bySonde),
-        datasets: [{
-          data: Object.values(bySonde),
-          backgroundColor: 'rgba(200,255,0,0.5)',
-          borderRadius: 0, borderWidth: 0,
-        }],
-      },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        plugins: { legend: { display:false } },
-        scales: {
-          y: { ...axisStyle(), ticks:{ ...axisStyle().ticks, stepSize:1 } },
-          x: axisStyle({ hideGrid:true }),
-        },
-      },
-    });
-  }
-
   // ── Sondes Table ────────────────────────────────────────────────────────────
   function renderSondesTable() {
     const tbody = $('sondes-tbody');
@@ -695,7 +594,6 @@
   window.DB = DB;
   window.renderAll = renderAll;
   window.showSection = showSection;
-  window.handleFile = handleFile;
   window.doLogout = doLogout;
   window.filterAlertes = filterAlertes;
 

@@ -147,13 +147,6 @@ body {
 .section { display: none; }
 .section.active { display: block; }
 
-/* ══ IMPORT BANNER ═══════════════════════════════════════════════════════════ */
-.import-banner {
-  display: none; align-items: center; gap: 10px;
-  padding: 10px 24px;
-  font-size: 11px; color: var(--ok);
-  background: #f0fdf4; border-bottom: 1px solid #bbf7d0;
-}
 
 /* ══ KPI BAND ════════════════════════════════════════════════════════════════ */
 .kpi-band {
@@ -378,23 +371,6 @@ body {
 .legend-item { display: flex; align-items: center; gap: 6px; }
 .legend-dot  { width: 8px; height: 8px; border-radius: 50%; }
 
-/* ══ UPLOAD ZONE ══════════════════════════════════════════════════════════════ */
-.upload-zone {
-  display: block; border: 2px dashed var(--border2); border-radius: var(--radius);
-  padding: 48px; text-align: center; cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-.upload-zone:hover { border-color: var(--accent); background: rgba(37,99,235,0.03); }
-.upload-zone input { display: none; }
-.upload-icon { font-size: 24px; margin-bottom: 12px; color: var(--accent); }
-.upload-text { font-size: 13px; color: var(--text2); font-weight: 500; }
-.upload-sub  { font-size: 10px; color: var(--text3); margin-top: 8px; }
-
-/* ══ SCHEMA GRID ══════════════════════════════════════════════════════════════ */
-.schema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; }
-.schema-cell { background: var(--bg3); padding: 16px; border-radius: var(--radius-sm); }
-.schema-cell-title { font-size: 11px; font-weight: 700; margin-bottom: 10px; }
-.schema-cell-fields { font-size: 11px; color: var(--text2); line-height: 2; }
 
 /* ══ ESP32 SPECS ══════════════════════════════════════════════════════════════ */
 .esp32-specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 24px; }
@@ -655,17 +631,6 @@ body {
 .chart-h-200 { position: relative; height: 200px; }
 .chart-h-300 { position: relative; height: 300px; }
 
-.import-note { font-size: 12px; color: var(--text2); margin-bottom: 20px; line-height: 1.8; }
-.import-note b { color: var(--accent); font-weight: 700; }
-.upload-zone.compact {
-  padding: 12px 20px; display: flex; align-items: center; gap: 10px; text-align: left;
-}
-.upload-zone.compact span { font-size: 11px; color: var(--text2); }
-
-.file-info {
-  display: flex; align-items: center; gap: 10px; padding: 10px 24px;
-  font-size: 11px; color: var(--ok); background: #f0fdf4; border-bottom: 1px solid #bbf7d0;
-}
 
 /* ══ RESPONSIVE ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
