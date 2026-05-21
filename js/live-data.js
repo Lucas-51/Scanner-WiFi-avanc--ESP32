@@ -1,3 +1,10 @@
+/**
+ * SondeDB — Rafraîchissement en temps réel
+ * ────────────────────────────────────────────────────────────────────
+ * Toutes les 8 secondes, interroge /api/dashboard et met à jour
+ * l'état DB du dashboard. Affiche aussi l'indicateur LIVE / OFFLINE
+ * dans la barre de navigation.
+ */
 (() => {
   const state = {
     apiBase:

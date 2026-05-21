@@ -213,27 +213,11 @@
     </div>
 
     <div class="band">
-      <span class="band-title">Force du signal RSSI</span>
-      <span>·</span>
-      <span>Localisation des sondes</span>
+      <span class="band-title">Force du signal RSSI par réseau</span>
     </div>
 
-    <div class="split-2">
-      <div class="panel">
-        <div class="panel-title">Signal par réseau (dBm)</div>
-        <div id="rssi-list"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">Position des sondes</div>
-        <div class="sonde-map">
-          <div class="map-grid"></div>
-          <div id="sonde-map-nodes"></div>
-          <div class="map-legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--text)"></div>Sonde active</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>Sonde en alerte</div>
-          </div>
-        </div>
-      </div>
+    <div class="panel-full">
+      <div id="rssi-list"></div>
     </div>
 
   </div><!-- /sec-overview -->
@@ -360,47 +344,11 @@
       </table>
     </div>
 
-    <div class="band">
-      <span class="band-title">Carte de déploiement</span>
-    </div>
-
-    <div class="panel-full">
-      <div class="sonde-map" style="height:400px">
-        <div class="map-grid"></div>
-        <div id="sonde-map-detail"></div>
-        <div class="map-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--text)"></div>Sonde active</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--text3)"></div>Hors ligne</div>
-        </div>
-      </div>
-    </div>
-
   </div><!-- /sec-sondes -->
 
 
   <!-- ══ DÉTAIL SONDE ════════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-detail">
-
-    <div class="band">
-      <span class="band-title">Schéma de la sonde ESP32</span>
-      <span class="band-spacer"></span>
-      <span class="band-tag live">Scroll ↓</span>
-    </div>
-
-    <div class="video-scroll-container" id="video-scroll-container">
-      <div class="video-sticky-wrap">
-        <div class="video-progress-track">
-          <div class="video-progress-fill" id="video-progress-fill"></div>
-        </div>
-        <video id="sonde-video" muted playsinline preload="auto">
-          <source src="media/Vid%C3%A9o%20Sch%C3%A9ma%20ESP32.mp4" type="video/mp4">
-        </video>
-        <div class="video-scroll-label" id="video-scroll-label">
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M4 10l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Scrollez pour avancer
-        </div>
-      </div>
-    </div>
 
     <div class="band">
       <span class="band-title">Carte ESP32-WROOM-32 — Spécifications</span>

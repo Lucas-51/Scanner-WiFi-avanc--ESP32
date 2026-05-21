@@ -1,6 +1,14 @@
-/* SondeDB — Dashboard (rendu + navigation + charts)
- * Expose : window.DB, window.renderAll, window.showSection,
- *          window.doLogout, window.filterAlertes
+/**
+ * SondeDB — Logique du dashboard
+ * ────────────────────────────────────────────────────────────────────
+ * Ce fichier contient :
+ *   - DB                : état central (sondes, mesures, alertes, réseaux)
+ *   - renderAll()       : rendu complet de l'interface
+ *   - showSection()     : navigation entre les sections
+ *   - filterAlertes()   : filtre du tableau d'alertes
+ *   - purgeData()       : suppression de données via l'API
+ *
+ * Les données sont injectées par live-data.js (poll toutes les 8 s).
  */
 (() => {
   'use strict';
@@ -75,8 +83,6 @@
     renderCanalGrid();
     renderAlertesMini();
     renderRSSIList();
-    renderSondeMap('sonde-map-nodes');
-    renderSondeMap('sonde-map-detail');
     renderSpectrumChart();
     renderCanalPie();
     renderRSSIHist();
@@ -186,30 +192,6 @@
         </div>
         <div class="rssi-val" style="color:${color}">${rssi} dBm</div>
         <div class="rssi-canal">ch${esc(m.canal)}</div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Sonde Map ───────────────────────────────────────────────────────────────
-  const SONDE_POSITIONS = [
-    { top:'42%', left:'38%' }, { top:'65%', left:'62%' }, { top:'30%', left:'70%' },
-    { top:'55%', left:'25%' }, { top:'75%', left:'45%' }, { top:'20%', left:'50%' },
-  ];
-
-  function renderSondeMap(containerId) {
-    const c = $(containerId);
-    if (!c) return;
-    c.innerHTML = DB.sondes.map((s, i) => {
-      const pos = SONDE_POSITIONS[i % SONDE_POSITIONS.length];
-      const status = probeStatus(s);
-      const color = status === 'alert' ? 'var(--danger)'
-                  : status === 'offline' ? 'var(--text3)'
-                  : 'var(--text)';
-      return `<div class="sonde-node${status==='offline'?' is-offline':''}" style="top:${pos.top};left:${pos.left}">
-        <div class="sonde-ring" style="border-color:${color}">
-          <div class="sonde-dot" style="background:${color}"></div>
-        </div>
-        <div class="sonde-label" style="color:${color}">${esc(s.nom)}</div>
       </div>`;
     }).join('');
   }
@@ -529,64 +511,6 @@
       .finally(() => { window.location.href = '/login'; });
   }
 
-  // ── Video Scrubbing (Détail Sonde) ──────────────────────────────────────────
-  function initVideoScrubbing() {
-    const video     = $('sonde-video');
-    const container = $('video-scroll-container');
-    const fill      = $('video-progress-fill');
-    const label     = $('video-scroll-label');
-    if (!video || !container) return;
-    video.pause();
-    video.playbackRate = 0;
-
-    let targetProgress = 0;
-    let currentProgress = 0;
-    let rafId = null;
-    let lastRenderedTime = -1;
-
-    function computeTarget() {
-      const section = $('sec-detail');
-      if (!section || !section.classList.contains('active')) return null;
-      const rect = container.getBoundingClientRect();
-      const scrollable = container.offsetHeight - window.innerHeight;
-      if (scrollable <= 0) return null;
-      return clamp(Math.max(0, -rect.top) / scrollable, 0, 1);
-    }
-
-    function tick() {
-      rafId = null;
-      const diff = targetProgress - currentProgress;
-      if (Math.abs(diff) > 0.0002) {
-        currentProgress += diff * 0.07; // lerp doux : glisse vers la cible
-        schedule();
-      } else {
-        currentProgress = targetProgress;
-      }
-
-      if (video.readyState >= 2 && video.duration) {
-        video.currentTime = currentProgress * video.duration; // pas de seuil → max fluidité
-      }
-      if (fill)  fill.style.width = (currentProgress * 100).toFixed(3) + '%';
-      if (label) label.style.opacity = currentProgress > 0.02 ? '0' : '1';
-    }
-
-    function schedule() {
-      if (rafId == null) rafId = requestAnimationFrame(tick);
-    }
-
-    function onScroll() {
-      const next = computeTarget();
-      if (next == null) return;
-      targetProgress = next;
-      schedule();
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    video.addEventListener('loadedmetadata', () => { onScroll(); schedule(); });
-    video.addEventListener('loadeddata', schedule);
-  }
-
   // ── Init ────────────────────────────────────────────────────────────────────
   setInterval(updateTime, 1000);
 
@@ -704,10 +628,9 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { renderAll(); initVideoScrubbing(); initRefreshButton(); });
+    document.addEventListener('DOMContentLoaded', () => { renderAll(); initRefreshButton(); });
   } else {
     renderAll();
-    initVideoScrubbing();
     initRefreshButton();
   }
 })();

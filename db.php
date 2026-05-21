@@ -1,5 +1,15 @@
 <?php
-// SondeDB — Connexion PDO + helpers communs
+/**
+ * SondeDB — Base de données + fonctions utilitaires
+ * ────────────────────────────────────────────────────────────────────
+ * - cfg()                : retourne le tableau de config (singleton)
+ * - db()                 : retourne la connexion PDO (singleton)
+ * - send_json/send_error : réponse HTTP JSON
+ * - read_json_body       : parse le body JSON d'une requête POST
+ * - norm_*               : nettoyage des données reçues de l'ESP32
+ * - verify_pbkdf2        : vérification du mot de passe
+ * - check_api_token      : auth ESP32 par token
+ */
 
 function cfg(): array {
     static $cfg = null;
@@ -11,7 +21,8 @@ function db(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
     $c = cfg();
-    $dsn = "mysql:host={$c['db_host']};port={$c['db_port']};dbname={$c['db_name']};charset=utf8mb4";
+    // Sur Ubuntu, MySQL n'écoute que sur socket Unix — on l'utilise directement
+    $dsn = "mysql:unix_socket=/var/run/mysqld/mysqld.sock;dbname={$c['db_name']};charset=utf8mb4";
     $pdo = new PDO($dsn, $c['db_user'], $c['db_pass'], [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

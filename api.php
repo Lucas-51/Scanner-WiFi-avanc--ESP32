@@ -1,5 +1,21 @@
 <?php
-// SondeDB — Routeur API unique (toutes les routes /api/*)
+/**
+ * SondeDB — Routeur API unique
+ * ────────────────────────────────────────────────────────────────────
+ * Toutes les requêtes /api/* arrivent ici via .htaccess (mod_rewrite).
+ *
+ * Routes disponibles :
+ *   GET  /api/health               → ping du serveur + MySQL
+ *   POST /api/login                → authentification dashboard
+ *   GET  /api/logout               → fermeture de session
+ *   GET  /api/dashboard            → données pour l'interface live
+ *   POST /api/ingest               → réception des scans ESP32
+ *   POST /api/purge                → suppression d'anciennes données
+ *   GET  /api/probe/{id}/sync      → l'ESP32 récupère sa config
+ *   POST /api/probe/{id}/settings  → modification d'une sonde
+ *   GET  /api/speedtest/download   → test débit descendant (2 Mo)
+ *   POST /api/speedtest/upload     → test débit montant
+ */
 
 require __DIR__ . '/db.php';
 

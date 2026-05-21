@@ -1,5 +1,10 @@
 <?php
-// SondeDB — Configuration (à modifier sur le serveur de prod)
+/**
+ * SondeDB — Configuration centrale
+ * ────────────────────────────────────────────────────────────────────
+ * Toutes les valeurs sensibles ou variables de l'application sont ici.
+ * Pour déployer sur un autre serveur, seul ce fichier doit être édité.
+ */
 
 return [
     'db_host'  => '127.0.0.1',

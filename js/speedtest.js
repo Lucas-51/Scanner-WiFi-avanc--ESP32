@@ -1,5 +1,10 @@
-/* SondeDB — Target WiFi widget + progressive speedtest
- * S'active après dashboard.js (utilise window.DB, parseRssi, rssiColor).
+/**
+ * SondeDB — Widget "réseau ciblé" + speedtest
+ * ────────────────────────────────────────────────────────────────────
+ * 1. Bandeau du haut : affiche le réseau WiFi sélectionné (SSID, RSSI,
+ *    canal, BSSID, qualité) avec un sparkline des dernières mesures.
+ * 2. Speedtest : analyse RSSI sur 12 secondes puis mesure le débit
+ *    download (2 Mo) et upload (1 Mo).
  */
 (() => {
   'use strict';
