@@ -81,9 +81,8 @@
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const SECTION_TITLES = {
-    overview:'Vue générale', spectrum:'Spectre WiFi', alertes:'Alertes',
-    interventions:'Interventions', sondes:'Sondes',
-    import:'Import données', detail:'Détail sonde',
+    overview:'Vue générale', spectrum:'Spectre WiFi',
+    alertes:'Alertes', sondes:'Sondes', detail:'Détail sonde',
   };
 
   function showSection(id, el) {
@@ -126,8 +125,6 @@
     renderMesuresTable();
     renderAlertesTable();
     renderAlertesCharts();
-    renderTimeline();
-    renderInterventionChart();
     renderSondesTable();
     updateBadgeAlertes();
     updateTime();

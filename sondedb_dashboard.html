@@ -41,9 +41,7 @@
     <div class="nav-item active" onclick="showSection('overview',this)">Vue générale <div class="status-dot"></div></div>
     <div class="nav-item" onclick="showSection('spectrum',this)">Spectre WiFi</div>
     <div class="nav-item" onclick="showSection('alertes',this)">Alertes <div class="nav-dot" id="badge-alertes" style="display:none"></div></div>
-    <div class="nav-item" onclick="showSection('interventions',this)">Interventions</div>
     <div class="nav-item" onclick="showSection('sondes',this)">Sondes</div>
-    <div class="nav-item" onclick="showSection('import',this)">Import</div>
     <div class="nav-item" onclick="showSection('detail',this)">Détail sonde</div>
     <button onclick="doLogout()" class="btn-logout">⏻ Déconnexion</button>
     <div class="hdr-live" id="live-indicator">
@@ -351,29 +349,6 @@
 
   </div><!-- /sec-alertes -->
 
-  <!-- ══ INTERVENTIONS ══════════════════════════════════════════════════════════ -->
-  <div class="section" id="sec-interventions">
-
-    <div class="band">
-      <span class="band-title">Journal des interventions</span>
-      <span>·</span>
-      <span>Par sonde</span>
-    </div>
-
-    <div class="split-2">
-      <div class="panel">
-        <div class="panel-title">Chronologie</div>
-        <div class="scroll-body">
-          <div class="timeline" id="timeline-list"></div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">Interventions par sonde</div>
-        <div class="chart-h-300"><canvas id="interventionChart"></canvas></div>
-      </div>
-    </div>
-
-  </div><!-- /sec-interventions -->
 
   <!-- ══ SONDES ══════════════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-sondes">
@@ -408,64 +383,6 @@
 
   </div><!-- /sec-sondes -->
 
-  <!-- ══ IMPORT ══════════════════════════════════════════════════════════════════ -->
-  <div class="section" id="sec-import">
-
-    <div class="band">
-      <span class="band-title">Import données CSV</span>
-      <span>·</span>
-      <span>Schéma attendu</span>
-    </div>
-
-    <div class="split-2">
-      <div class="panel">
-        <div class="panel-title">Fichier CSV</div>
-        <p class="import-note">
-          Importez votre fichier CSV exporté depuis <b>sondedb</b>.
-          Le dashboard détecte automatiquement les tables
-          alerte, intervention, mesure, reseau_wifi et sonde.
-        </p>
-        <label class="upload-zone" for="file-input-main">
-          <input type="file" id="file-input-main" accept=".csv" onchange="handleFile(this)">
-          <div class="upload-icon">↑</div>
-          <div class="upload-text">Glissez votre CSV ici ou cliquez</div>
-          <div class="upload-sub">Format : export sondedb.csv — tables concaténées</div>
-        </label>
-        <div style="margin-top:16px">
-          <label class="upload-zone compact" for="file-input-top">
-            <input type="file" id="file-input-top" accept=".csv" onchange="handleFile(this)">
-            <span>Ou importez depuis la barre de navigation</span>
-          </label>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">Schéma des tables</div>
-        <div class="schema-grid">
-          <div class="schema-cell">
-            <div class="schema-cell-title" style="color:var(--danger)">● alerte</div>
-            <div class="schema-cell-fields">id<br>id_sonde<br>type_alerte<br>description<br>niveau<br>horodatage</div>
-          </div>
-          <div class="schema-cell">
-            <div class="schema-cell-title" style="color:var(--accent2)">● intervention</div>
-            <div class="schema-cell-fields">id<br>id_sonde<br>technicien<br>description<br>date_intervention</div>
-          </div>
-          <div class="schema-cell">
-            <div class="schema-cell-title" style="color:var(--accent)">● mesure</div>
-            <div class="schema-cell-fields">id<br>id_sonde<br>ssid<br>bssid<br>rssi<br>canal<br>horodatage</div>
-          </div>
-          <div class="schema-cell">
-            <div class="schema-cell-title" style="color:var(--warn)">● reseau_wifi</div>
-            <div class="schema-cell-fields">id<br>ssid<br>bssid<br>canal<br>date_detection</div>
-          </div>
-          <div class="schema-cell">
-            <div class="schema-cell-title" style="color:var(--dim)">● sonde</div>
-            <div class="schema-cell-fields">id<br>nom<br>localisation<br>date_deploiement</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /sec-import -->
 
   <!-- ══ DÉTAIL SONDE ════════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-detail">
