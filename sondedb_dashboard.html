@@ -10,41 +10,40 @@
 </head>
 <body>
 
-<!-- ══ HEADER (minimal) ════════════════════════════════════════════════════════ -->
+<!-- ══ HEADER ═══════════════════════════════════════════════════════════════ -->
 <header class="hdr">
   <nav class="hdr-nav">
     <div class="hdr-brand-mini">SondeDB</div>
     <div class="nav-item active" onclick="showSection('overview',this)">Mon WiFi</div>
     <div class="nav-item" onclick="showSection('spectrum',this)">Canaux</div>
-    <div class="nav-item" onclick="showSection('alertes',this)">Alertes <div class="nav-dot" id="badge-alertes" style="display:none"></div></div>
+    <div class="nav-item" onclick="showSection('alertes',this)">Alertes <div class="nav-dot" id="badge-alertes"></div></div>
     <div class="nav-item" onclick="showSection('sondes',this)">Capteurs</div>
     <div class="nav-item" onclick="showSection('detail',this)">À propos</div>
     <div class="hdr-live" id="live-indicator" title="Connexion base de données">
       <div class="live-dot"></div>
-      <span style="display:none" id="live-indicator-label"></span>
-      <span style="display:none" id="live-status"></span>
-      <span style="display:none" id="last-update"></span>
-      <span style="display:none" id="page-title">Mon WiFi</span>
-      <span style="display:none" id="topbar-time"></span>
-      <span style="display:none" id="hdr-date-el"></span>
+      <span id="live-indicator-label"></span>
+      <span id="live-status"></span>
+      <span id="last-update"></span>
+      <span id="page-title">Mon WiFi</span>
+      <span id="topbar-time"></span>
+      <span id="hdr-date-el"></span>
     </div>
     <button onclick="doLogout()" class="btn-logout">Déconnexion</button>
   </nav>
 </header>
 
-<!-- ══ PAGE ════════════════════════════════════════════════════════════════════ -->
+<!-- ══ PAGE ═════════════════════════════════════════════════════════════════ -->
 <main class="page">
 
-  <!-- ══ VUE GÉNÉRALE ══════════════════════════════════════════════════════════ -->
+  <!-- ══ VUE GÉNÉRALE ════════════════════════════════════════════════════════ -->
   <div class="section active" id="sec-overview">
 
-    <!-- ── Carte WiFi simplifiée ───────────────────────────────────────────── -->
+    <!-- Carte WiFi -->
     <div class="wifi-card" id="target-wifi">
       <div class="wifi-card-head">
         <div class="wifi-card-lbl">Réseau WiFi que tu regardes</div>
         <select class="wifi-select" id="tw-select"></select>
       </div>
-
       <div class="wifi-card-body">
         <div class="wifi-icon" id="wifi-icon" aria-hidden="true">
           <div class="wifi-arc a1"></div>
@@ -52,14 +51,12 @@
           <div class="wifi-arc a3"></div>
           <div class="wifi-dot"></div>
         </div>
-
         <div class="wifi-info">
           <div class="wifi-ssid" id="tw-ssid">—</div>
           <div class="wifi-quality-line">
             <span class="wifi-quality-badge" id="tw-quality-badge">—</span>
             <span class="wifi-explain" id="wifi-explain">Choisis un réseau pour voir si ton WiFi est bon.</span>
           </div>
-
           <div class="wifi-bars" id="wifi-bars">
             <span class="wbar"></span><span class="wbar"></span>
             <span class="wbar"></span><span class="wbar"></span>
@@ -68,7 +65,6 @@
           <div class="wifi-bars-lbl"><span id="wifi-percent">—</span> de force du signal</div>
         </div>
       </div>
-
       <details class="wifi-tech">
         <summary>Détails techniques</summary>
         <div class="wifi-tech-grid">
@@ -81,6 +77,7 @@
       </details>
     </div>
 
+    <!-- KPIs -->
     <div class="kpi-band">
       <div class="kpi">
         <div class="kpi-n" id="kpi-sondes">—</div>
@@ -104,25 +101,23 @@
       </div>
     </div>
 
-    <!-- ══ SPEEDTEST ═════════════════════════════════════════════════════════ -->
-    <div class="band" style="margin-bottom:0">
+    <!-- Speedtest -->
+    <div class="band band-no-mb">
       <span class="band-title">Speedtest qualité WiFi</span>
       <span>·</span>
       <span>Analyse du signal sur plusieurs secondes</span>
       <span class="band-spacer"></span>
       <button id="btn-speedtest" class="btn-ghost">▶ Lancer le test</button>
     </div>
-    <div id="speedtest-panel" class="speedtest-panel" style="display:none">
+    <div id="speedtest-panel" class="speedtest-panel">
       <div class="speedtest-head">
         <div class="speedtest-spinner" id="speedtest-spinner"></div>
         <span class="speedtest-status" id="speedtest-status">Analyse en cours…</span>
-        <span class="speedtest-score" id="speedtest-score" style="display:none"></span>
+        <span class="speedtest-score" id="speedtest-score"></span>
       </div>
-
       <div class="speedtest-progress">
         <div class="speedtest-progress-fill" id="speedtest-progress-fill"></div>
       </div>
-
       <div class="speedtest-body">
         <div class="speedtest-gauge">
           <div class="speedtest-gauge-big"><span id="speedtest-gauge-val">—</span></div>
@@ -133,45 +128,38 @@
           <canvas id="speedtest-chart"></canvas>
         </div>
       </div>
-
       <div class="speedtest-stats">
         <div class="speedtest-stat">
           <div class="speedtest-stat-lbl">Min</div>
-          <div class="speedtest-stat-val"><span id="speedtest-min">—</span>
-            <span class="speedtest-stat-unit">dBm</span></div>
+          <div class="speedtest-stat-val"><span id="speedtest-min">—</span><span class="speedtest-stat-unit">dBm</span></div>
         </div>
         <div class="speedtest-stat">
           <div class="speedtest-stat-lbl">Max</div>
-          <div class="speedtest-stat-val"><span id="speedtest-max">—</span>
-            <span class="speedtest-stat-unit">dBm</span></div>
+          <div class="speedtest-stat-val"><span id="speedtest-max">—</span><span class="speedtest-stat-unit">dBm</span></div>
         </div>
         <div class="speedtest-stat">
           <div class="speedtest-stat-lbl">Moyenne</div>
-          <div class="speedtest-stat-val"><span id="speedtest-avg">—</span>
-            <span class="speedtest-stat-unit">dBm</span></div>
+          <div class="speedtest-stat-val"><span id="speedtest-avg">—</span><span class="speedtest-stat-unit">dBm</span></div>
         </div>
         <div class="speedtest-stat">
           <div class="speedtest-stat-lbl">Jitter (σ)</div>
-          <div class="speedtest-stat-val"><span id="speedtest-jit">—</span>
-            <span class="speedtest-stat-unit">dB</span></div>
+          <div class="speedtest-stat-val"><span id="speedtest-jit">—</span><span class="speedtest-stat-unit">dB</span></div>
         </div>
         <div class="speedtest-stat">
           <div class="speedtest-stat-lbl">Échantillons</div>
           <div class="speedtest-stat-val"><span id="speedtest-count">—</span></div>
         </div>
       </div>
-
-      <!-- Bande passante download / upload -->
-      <div class="st-bw-grid" id="st-bw-section" style="display:none">
+      <div class="st-bw-grid" id="st-bw-section">
         <div class="st-bw-item" id="st-bw-dl">
-          <div class="st-bw-arrow" style="color:#16a34a">↓</div>
+          <div class="st-bw-arrow">↓</div>
           <div class="st-bw-val" id="st-dl">—</div>
           <div class="st-bw-unit">Mbps</div>
           <div class="st-bw-lbl">Download</div>
           <div class="st-bw-bar"><div class="st-bw-bar-fill" id="st-dl-bar"></div></div>
         </div>
         <div class="st-bw-item" id="st-bw-ul">
-          <div class="st-bw-arrow" style="color:#2563eb">↑</div>
+          <div class="st-bw-arrow">↑</div>
           <div class="st-bw-val" id="st-ul">—</div>
           <div class="st-bw-unit">Mbps</div>
           <div class="st-bw-lbl">Upload</div>
@@ -193,9 +181,9 @@
         <div class="panel-title">Canaux WiFi <span class="ptag live">2.4 GHz</span></div>
         <div class="canal-grid" id="canal-grid"></div>
         <div class="legend-inline">
-          <span><i style="background:rgba(200,255,0,0.45)"></i>Signal</span>
-          <span><i style="background:var(--danger)"></i>Alerte</span>
-          <span><i style="background:rgba(255,255,255,0.07)"></i>Libre</span>
+          <span><i class="legend-i-signal"></i>Signal</span>
+          <span><i class="legend-i-alerte"></i>Alerte</span>
+          <span><i class="legend-i-libre"></i>Libre</span>
         </div>
       </div>
       <div class="panel">
@@ -214,7 +202,7 @@
 
   </div><!-- /sec-overview -->
 
-  <!-- ══ SPECTRE ════════════════════════════════════════════════════════════════ -->
+  <!-- ══ SPECTRE ══════════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-spectrum">
 
     <div class="band">
@@ -246,7 +234,7 @@
       <button type="button" class="refresh-btn" id="btn-refresh-reseaux" title="Rafraîchir la liste">
         <span class="refresh-icon">↻</span> Rafraîchir
       </button>
-      <span class="band-count" id="alertes-count-badge" style="display:none"></span>
+      <span class="band-count" id="alertes-count-badge"></span>
     </div>
 
     <div class="panel-full">
@@ -262,25 +250,22 @@
 
   </div><!-- /sec-spectrum -->
 
-  <!-- ══ ALERTES ════════════════════════════════════════════════════════════════ -->
+  <!-- ══ ALERTES ══════════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-alertes">
 
     <div class="band">
       <span class="band-title">Purge des données</span>
     </div>
 
-    <div class="panel-full" style="padding:16px 20px;">
-      <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:12px;">SUPPRIMER MESURES + ALERTES DES DERNIÈRES</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <div class="panel-full panel-compact">
+      <div class="purge-lbl">SUPPRIMER MESURES + ALERTES DES DERNIÈRES</div>
+      <div class="purge-row">
         <button onclick="purgeData(5)"  class="filter-btn">5 min</button>
         <button onclick="purgeData(15)" class="filter-btn">15 min</button>
         <button onclick="purgeData(30)" class="filter-btn">30 min</button>
         <button onclick="purgeData(60)" class="filter-btn">1 heure</button>
-        <button onclick="purgeData('all')" class="filter-btn"
-                style="background:#fef2f2;color:var(--danger);border-color:#fecaca;font-weight:700">
-          ⚠ Tout supprimer
-        </button>
-        <span id="purge-feedback" style="font-size:10px;color:var(--accent);margin-left:8px;"></span>
+        <button onclick="purgeData('all')" class="filter-btn filter-btn--danger">⚠ Tout supprimer</button>
+        <span id="purge-feedback"></span>
       </div>
     </div>
 
@@ -319,8 +304,7 @@
 
   </div><!-- /sec-alertes -->
 
-
-  <!-- ══ SONDES ══════════════════════════════════════════════════════════════════ -->
+  <!-- ══ SONDES ════════════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-sondes">
 
     <div class="band">
@@ -338,8 +322,7 @@
 
   </div><!-- /sec-sondes -->
 
-
-  <!-- ══ DÉTAIL SONDE ════════════════════════════════════════════════════════════ -->
+  <!-- ══ DÉTAIL SONDE ══════════════════════════════════════════════════════════ -->
   <div class="section" id="sec-detail">
 
     <div class="band">
@@ -372,7 +355,7 @@
         <div class="spec-row"><span class="spec-key">Antenne</span><span class="spec-val">PCB intégrée + IPEX</span></div>
       </div>
       <div class="spec-card">
-        <div class="spec-card-title">I/O & Alimentation</div>
+        <div class="spec-card-title">I/O &amp; Alimentation</div>
         <div class="spec-row"><span class="spec-key">GPIO</span><span class="spec-val">38 broches</span></div>
         <div class="spec-row"><span class="spec-key">ADC</span><span class="spec-val">12 bits — 18 canaux</span></div>
         <div class="spec-row"><span class="spec-key">DAC</span><span class="spec-val">8 bits — 2 canaux</span></div>
@@ -381,7 +364,7 @@
       </div>
     </div>
 
-    <div class="band" style="margin-top:0">
+    <div class="band band-no-mt">
       <span class="band-title">Interfaces disponibles</span>
       <span>·</span>
       <span>Rôle dans SondeDB</span>
@@ -390,7 +373,7 @@
     <div class="split-2">
       <div class="panel">
         <div class="panel-title">Interfaces</div>
-        <div style="display:flex;flex-wrap:wrap;padding:4px 0">
+        <div class="chips-wrap">
           <div class="feature-chip hi">UART ×3</div>
           <div class="feature-chip hi">SPI ×4</div>
           <div class="feature-chip hi">I²C ×2</div>
@@ -407,7 +390,7 @@
       </div>
       <div class="panel">
         <div class="panel-title">Rôle de la sonde</div>
-        <div class="timeline" style="margin-top:2px">
+        <div class="timeline">
           <div class="timeline-item">
             <div class="timeline-dot-wrap">
               <div class="timeline-dot"></div>
@@ -434,7 +417,7 @@
             </div>
             <div class="timeline-content">
               <div class="timeline-header"><span class="timeline-tech">Envoi vers SondeDB</span></div>
-              <div class="timeline-desc">Transmission des mesures via HTTP/JSON → stockage SQL et déclenchement automatique des alertes.</div>
+              <div class="timeline-desc">Transmission des mesures via HTTPS/JSON → stockage SQL et déclenchement automatique des alertes.</div>
             </div>
           </div>
         </div>
@@ -443,36 +426,31 @@
 
   </div><!-- /sec-detail -->
 
-</main><!-- /page -->
+</main>
 
 <div class="tooltip" id="tooltip"></div>
 
-<!-- ── Modal config sonde ──────────────────────────────────────────────────── -->
-<div id="probe-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:var(--bg2);border:1px solid var(--border);padding:28px 32px;min-width:340px;max-width:480px;width:90%;">
-    <div style="font-size:11px;letter-spacing:.12em;color:var(--accent);margin-bottom:18px;">CONFIGURER LA SONDE</div>
+<!-- Modal config sonde -->
+<div id="probe-modal-overlay" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">CONFIGURER LA SONDE</div>
     <input type="hidden" id="modal-probe-id">
-    <div style="margin-bottom:14px;">
-      <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:4px;">NOM</div>
-      <input id="modal-probe-name" type="text" maxlength="49"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:inherit;font-size:11px;box-sizing:border-box;">
+    <div class="modal-field">
+      <div class="modal-field-lbl">NOM</div>
+      <input id="modal-probe-name" type="text" maxlength="49" class="modal-input">
     </div>
-    <div style="margin-bottom:22px;">
-      <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:4px;">LOCALISATION</div>
-      <input id="modal-probe-loc" type="text" maxlength="99"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:inherit;font-size:11px;box-sizing:border-box;">
+    <div class="modal-field modal-field--last">
+      <div class="modal-field-lbl">LOCALISATION</div>
+      <input id="modal-probe-loc" type="text" maxlength="99" class="modal-input">
     </div>
-    <div id="modal-feedback" style="font-size:10px;color:var(--accent);min-height:16px;margin-bottom:14px;"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeProbeModal()"
-        style="background:none;border:1px solid var(--border);color:var(--text2);padding:7px 18px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.08em;">ANNULER</button>
-      <button onclick="saveProbeSettings()"
-        style="background:var(--accent);border:none;color:#000;padding:7px 18px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;">ENREGISTRER</button>
+    <div id="modal-feedback"></div>
+    <div class="modal-actions">
+      <button onclick="closeProbeModal()" class="btn-modal-cancel">ANNULER</button>
+      <button onclick="saveProbeSettings()" class="btn-modal-save">ENREGISTRER</button>
     </div>
   </div>
 </div>
 
-<!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
 <script src="js/dashboard.js"></script>
 <script src="js/speedtest.js"></script>
 <script src="js/live-data.js"></script>
