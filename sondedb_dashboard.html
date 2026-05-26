@@ -10,48 +10,25 @@
 </head>
 <body>
 
-<!-- ══ HEADER ══════════════════════════════════════════════════════════════════ -->
+<!-- ══ HEADER (minimal) ════════════════════════════════════════════════════════ -->
 <header class="hdr">
-  <div class="hdr-top">
-    <div class="hdr-brand">
-      <div class="hdr-brand-mark">SondeDB</div>
-      <div class="hdr-brand-sub">WiFi Monitor</div>
-      <div class="hdr-brand-copy">©</div>
-    </div>
-    <div class="hdr-section-wrap">
-      <div class="hdr-section-lbl">Section</div>
-      <div class="hdr-section-val">
-        <span class="hdr-section-arrow">&lt;</span>
-        <span id="page-title">Vue générale</span>
-        <span class="hdr-section-arrow">&gt;</span>
-      </div>
-    </div>
-    <div class="hdr-desc">
-      <div class="hdr-desc-line">Scanner WiFi avancé ESP32</div>
-      <div class="hdr-desc-line">BTS CIEL — Analyse RF</div>
-      <div class="hdr-desc-sub">Représenté par ESP32-Wroom-32</div>
-    </div>
-    <div class="hdr-time">
-      <div class="hdr-clock" id="topbar-time">—</div>
-      <div class="hdr-date" id="hdr-date-el">—</div>
-      <div class="hdr-loc">Paris</div>
-    </div>
-  </div>
   <nav class="hdr-nav">
-    <div class="nav-item active" onclick="showSection('overview',this)">Vue générale <div class="status-dot"></div></div>
-    <div class="nav-item" onclick="showSection('spectrum',this)">Spectre WiFi</div>
+    <div class="hdr-brand-mini">SondeDB</div>
+    <div class="nav-item active" onclick="showSection('overview',this)">Mon WiFi</div>
+    <div class="nav-item" onclick="showSection('spectrum',this)">Canaux</div>
     <div class="nav-item" onclick="showSection('alertes',this)">Alertes <div class="nav-dot" id="badge-alertes" style="display:none"></div></div>
-    <div class="nav-item" onclick="showSection('sondes',this)">Sondes</div>
-    <div class="nav-item" onclick="showSection('detail',this)">Détail sonde</div>
-    <button onclick="doLogout()" class="btn-logout">⏻ Déconnexion</button>
+    <div class="nav-item" onclick="showSection('sondes',this)">Capteurs</div>
+    <div class="nav-item" onclick="showSection('detail',this)">À propos</div>
     <div class="hdr-live" id="live-indicator">
-      <div class="hdr-live-row">
-        <div class="live-dot"></div>
-        <span id="live-indicator-label">Init…</span>
-      </div>
-      <div class="hdr-live-sub" id="live-status">Connexion en attente…</div>
-      <div style="display:none" id="last-update"></div>
+      <div class="live-dot"></div>
+      <span id="live-indicator-label">Init…</span>
+      <span class="hdr-live-sub" id="live-status">Connexion…</span>
+      <span style="display:none" id="last-update"></span>
+      <span style="display:none" id="page-title">Mon WiFi</span>
+      <span style="display:none" id="topbar-time"></span>
+      <span style="display:none" id="hdr-date-el"></span>
     </div>
+    <button onclick="doLogout()" class="btn-logout">Déconnexion</button>
   </nav>
 </header>
 
@@ -61,54 +38,69 @@
   <!-- ══ VUE GÉNÉRALE ══════════════════════════════════════════════════════════ -->
   <div class="section active" id="sec-overview">
 
-    <!-- ── Target WiFi widget ──────────────────────────────────────────────── -->
-    <div class="target-wifi" id="target-wifi">
-      <div class="tw-label">
-        <div class="tw-lbl-tag">WiFi ciblé</div>
-        <div class="tw-lbl-sub">Réseau analysé</div>
-        <select class="tw-select" id="tw-select"></select>
+    <!-- ── Carte WiFi simplifiée ───────────────────────────────────────────── -->
+    <div class="wifi-card" id="target-wifi">
+      <div class="wifi-card-head">
+        <div class="wifi-card-lbl">Réseau WiFi que tu regardes</div>
+        <select class="wifi-select" id="tw-select"></select>
       </div>
-      <div class="tw-main">
-        <div class="tw-ssid" id="tw-ssid">—</div>
-        <div class="tw-meta">
-          <div class="tw-meta-item"><span>Canal</span><span class="tw-meta-val" id="tw-canal">—</span></div>
-          <div class="tw-meta-item"><span>BSSID</span><span class="tw-meta-val" id="tw-bssid">—</span></div>
-          <div class="tw-meta-item"><span>Échantillons</span><span class="tw-meta-val" id="tw-samples">—</span></div>
+
+      <div class="wifi-card-body">
+        <div class="wifi-icon" id="wifi-icon" aria-hidden="true">
+          <div class="wifi-arc a1"></div>
+          <div class="wifi-arc a2"></div>
+          <div class="wifi-arc a3"></div>
+          <div class="wifi-dot"></div>
+        </div>
+
+        <div class="wifi-info">
+          <div class="wifi-ssid" id="tw-ssid">—</div>
+          <div class="wifi-quality-line">
+            <span class="wifi-quality-badge" id="tw-quality-badge">—</span>
+            <span class="wifi-explain" id="wifi-explain">Choisis un réseau pour voir si ton WiFi est bon.</span>
+          </div>
+
+          <div class="wifi-bars" id="wifi-bars">
+            <span class="wbar"></span><span class="wbar"></span>
+            <span class="wbar"></span><span class="wbar"></span>
+            <span class="wbar"></span>
+          </div>
+          <div class="wifi-bars-lbl"><span id="wifi-percent">—</span> de force du signal</div>
         </div>
       </div>
-      <div class="tw-rssi">
-        <div class="tw-rssi-val" id="tw-rssi-val">—</div>
-        <div class="tw-rssi-unit">dBm · RSSI courant</div>
-      </div>
-      <div class="tw-quality">
-        <div class="tw-quality-badge" id="tw-quality-badge">—</div>
-        <div class="tw-lbl-sub">Qualité</div>
-      </div>
-      <div class="tw-sparkline">
-        <canvas id="tw-sparkline-canvas"></canvas>
-      </div>
+
+      <details class="wifi-tech">
+        <summary>Détails techniques</summary>
+        <div class="wifi-tech-grid">
+          <div><span>Canal radio</span><b id="tw-canal">—</b></div>
+          <div><span>Identifiant matériel (BSSID)</span><b id="tw-bssid">—</b></div>
+          <div><span>Mesures prises</span><b id="tw-samples">—</b></div>
+          <div><span>Puissance brute</span><b><span id="tw-rssi-val">—</span> dBm</b></div>
+        </div>
+        <div class="wifi-spark"><canvas id="tw-sparkline-canvas"></canvas></div>
+      </details>
     </div>
 
     <div class="kpi-band">
       <div class="kpi">
         <div class="kpi-n" id="kpi-sondes">—</div>
-        <div class="kpi-lbl">Sondes actives</div>
-        <div class="kpi-sub">ESP32 déployées</div>
+        <div class="kpi-lbl">Capteurs en marche</div>
+        <div class="kpi-sub">Petits boîtiers qui écoutent le WiFi</div>
       </div>
       <div class="kpi">
         <div class="kpi-n c-accent" id="kpi-reseaux">—</div>
-        <div class="kpi-lbl">Réseaux détectés</div>
-        <div class="kpi-sub">SSIDs uniques</div>
+        <div class="kpi-lbl">Réseaux WiFi trouvés</div>
+        <div class="kpi-sub">Box voisines détectées autour de toi</div>
       </div>
       <div class="kpi">
         <div class="kpi-n" id="kpi-mesures">—</div>
-        <div class="kpi-lbl">Mesures totales</div>
-        <div class="kpi-sub">Entrées enregistrées</div>
+        <div class="kpi-lbl">Mesures enregistrées</div>
+        <div class="kpi-sub">Photos du signal prises au fil du temps</div>
       </div>
       <div class="kpi">
         <div class="kpi-n c-danger" id="kpi-alertes">—</div>
-        <div class="kpi-lbl">Alertes actives</div>
-        <div class="kpi-sub">Nécessitent action</div>
+        <div class="kpi-lbl">Problèmes détectés</div>
+        <div class="kpi-sub">Choses bizarres qu'il faut regarder</div>
       </div>
     </div>
 
