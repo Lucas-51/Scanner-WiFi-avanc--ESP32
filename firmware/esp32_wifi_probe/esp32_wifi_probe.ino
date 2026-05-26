@@ -1,10 +1,11 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <WiFiManager.h>   // bibliothèque à installer via le gestionnaire
 #include <Preferences.h>   // stockage flash interne ESP32
 
 // ── Config runtime (chargée depuis le flash) ──────────────────────────────────
-char g_apiUrl[128]    = "http://10.1.40.51/api/ingest";
+char g_apiUrl[128]    = "https://10.1.40.51/api/ingest";
 char g_apiToken[80]   = "";
 char g_probeName[50]  = "ESP32-LAB";
 char g_probeLoc[100]  = "Non configuree";
@@ -208,7 +209,18 @@ String buildPayload() {
   return payload;
 }
 
-// ── Envoi HTTP ────────────────────────────────────────────────────────────────
+// ── Client HTTPS statique (évite le memory leak avec new/delete répétés) ──────
+static WiFiClientSecure g_secureClient;
+static bool g_secureClientReady = false;
+
+void ensureSecureClient() {
+  if (!g_secureClientReady) {
+    g_secureClient.setInsecure(); // réseau local : pas de vérif certificat
+    g_secureClientReady = true;
+  }
+}
+
+// ── Envoi HTTP ou HTTPS ───────────────────────────────────────────────────────
 void pushScan() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi non connecte, scan ignore.");
@@ -219,19 +231,21 @@ void pushScan() {
   Serial.println("Payload JSON construit (" + String(payload.length()) + " octets)");
 
   HTTPClient http;
-  http.begin(g_apiUrl);
-  http.addHeader("Content-Type", "application/json");
-  if (strlen(g_apiToken) > 0) {
-    http.addHeader("X-API-Token", g_apiToken);
+  if (String(g_apiUrl).startsWith("https://")) {
+    ensureSecureClient();
+    http.begin(g_secureClient, g_apiUrl);
+  } else {
+    http.begin(g_apiUrl);
   }
+
+  http.addHeader("Content-Type", "application/json");
+  if (strlen(g_apiToken) > 0) http.addHeader("X-API-Token", g_apiToken);
 
   int statusCode = http.POST(payload);
   if (statusCode > 0) {
     Serial.print("POST -> HTTP ");
     Serial.println(statusCode);
-    if (statusCode == 201) {
-      Serial.println(http.getString());
-    }
+    if (statusCode == 201) Serial.println(http.getString());
   } else {
     Serial.print("Erreur HTTP: ");
     Serial.println(http.errorToString(statusCode));
@@ -263,6 +277,16 @@ void setup() {
 
   // Chargement config depuis le flash
   loadPrefs();
+
+  // Migration automatique HTTP → HTTPS
+  String apiUrl = String(g_apiUrl);
+  if (apiUrl.startsWith("http://")) {
+    apiUrl.replace("http://", "https://");
+    apiUrl.toCharArray(g_apiUrl, sizeof(g_apiUrl));
+    savePrefs();
+    Serial.println("Migration URL : http -> https effectuee.");
+  }
+
   Serial.println("Config : " + String(g_probeName) + " @ " + String(g_probeLoc));
   Serial.println("API    : " + String(g_apiUrl));
 
@@ -328,11 +352,15 @@ void syncWithServer() {
   if (WiFi.status() != WL_CONNECTED) return;
 
   String url = String(g_apiUrl);
-  // Remplace /api/ingest par /api/probe/<id>/sync
   url.replace("/api/ingest", "/api/probe/" + String(g_probeId) + "/sync");
 
   HTTPClient http;
-  http.begin(url);
+  if (url.startsWith("https://")) {
+    ensureSecureClient();
+    http.begin(g_secureClient, url);
+  } else {
+    http.begin(url);
+  }
   if (strlen(g_apiToken) > 0) http.addHeader("X-API-Token", g_apiToken);
 
   int code = http.GET();

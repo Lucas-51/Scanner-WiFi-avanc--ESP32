@@ -147,6 +147,47 @@
       badge.style.borderColor = q.color;
     }
 
+    // Barres de signal
+    const pct = latest ? Math.round(Math.min(100, Math.max(0, (rssiNow + 100) / 70 * 100))) : 0;
+    const pctEl = $('wifi-percent');
+    if (pctEl) pctEl.textContent = latest ? pct + '%' : '—';
+
+    const bars = document.querySelectorAll('.wbar');
+    const activeBars = latest ? Math.ceil(pct / 20) : 0;
+    const barClass = rssiNow > -60 ? 'on-ok' : rssiNow > -75 ? 'on-warn' : 'on-danger';
+    bars.forEach((b, i) => {
+      b.classList.remove('on-ok', 'on-warn', 'on-danger');
+      if (i < activeBars) b.classList.add(barClass);
+    });
+
+    // Icône WiFi colorée
+    const icon = $('wifi-icon');
+    if (icon) {
+      icon.classList.remove('sig-excellent', 'sig-bon', 'sig-moyen', 'sig-faible');
+      if (latest) {
+        const sigClass = q.label === 'EXCELLENT' ? 'sig-excellent'
+          : q.label === 'BON' ? 'sig-bon'
+          : q.label === 'MOYEN' ? 'sig-moyen' : 'sig-faible';
+        icon.classList.add(sigClass);
+      }
+    }
+
+    // Texte d'explication
+    const explain = $('wifi-explain');
+    if (explain) {
+      if (!latest) {
+        explain.textContent = 'Choisis un réseau pour voir si ton WiFi est bon.';
+      } else if (q.label === 'EXCELLENT') {
+        explain.textContent = 'Ton WiFi est au top ! Tu peux regarder des vidéos 4K, jouer en ligne sans lag.';
+      } else if (q.label === 'BON') {
+        explain.textContent = 'Ton WiFi est bon. Tu peux regarder des vidéos et jouer en ligne sans problème.';
+      } else if (q.label === 'MOYEN') {
+        explain.textContent = 'Ton WiFi est moyen. Les vidéos peuvent bugguer. Essaie de te rapprocher de la box.';
+      } else {
+        explain.textContent = 'Ton WiFi est très faible. Tu es probablement trop loin de ta box.';
+      }
+    }
+
     renderSparkline(samples);
   }
 

@@ -392,28 +392,97 @@ body {
   font-size: 11px; color: var(--text2);
 }
 .tw-meta-item { display: flex; align-items: baseline; gap: 6px; }
-.tw-meta-val { color: var(--accent); font-size: 13px; font-weight: 700; }
-
-.tw-rssi {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
-  padding: 0 18px; border-left: 1px solid var(--line);
+/* ══ WIFI CARD (nouvelle carte simplifiée) ════════════════════════════════════ */
+.wifi-card {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 20px 24px 16px;
 }
-.tw-rssi-val  { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
-.tw-rssi-unit { font-size: 10px; color: var(--text3); }
 
-.tw-quality { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-left: 14px; }
-.tw-quality-badge {
-  padding: 7px 16px; border-radius: var(--radius-sm); font-size: 12px;
-  font-weight: 700; letter-spacing: 0.5px;
+.wifi-card-head {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
 }
-.tw-select {
+.wifi-card-lbl { font-size: 12px; font-weight: 600; color: var(--text2); }
+.wifi-select {
   background: var(--bg3); color: var(--text2);
   border: 1px solid var(--border); font-family: var(--mono);
-  font-size: 10px; padding: 5px 8px; cursor: pointer; width: 100%;
-  border-radius: var(--radius-sm);
+  font-size: 12px; padding: 6px 10px; cursor: pointer;
+  border-radius: var(--radius-sm); margin-left: auto; min-width: 180px;
 }
-.tw-select:hover { border-color: var(--accent); }
-.tw-sparkline { grid-column: 1 / -1; height: 44px; position: relative; margin-top: 4px; }
+.wifi-select:hover { border-color: var(--accent); }
+
+.wifi-card-body { display: flex; align-items: center; gap: 28px; }
+
+/* Icône WiFi CSS */
+.wifi-icon {
+  position: relative; width: 72px; height: 56px;
+  display: flex; align-items: flex-end; justify-content: center; flex-shrink: 0;
+}
+.wifi-arc {
+  position: absolute; border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: var(--bg3);
+  transition: border-top-color 0.4s;
+}
+.wifi-arc.a1 { width: 64px; height: 64px; top: 0; }
+.wifi-arc.a2 { width: 42px; height: 42px; top: 11px; }
+.wifi-arc.a3 { width: 22px; height: 22px; top: 22px; }
+.wifi-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bg3); position: absolute; bottom: 2px; transition: background 0.4s; }
+
+.wifi-icon.sig-excellent .wifi-arc { border-top-color: var(--ok); }
+.wifi-icon.sig-excellent .wifi-dot { background: var(--ok); }
+.wifi-icon.sig-bon .wifi-arc.a2, .wifi-icon.sig-bon .wifi-arc.a3 { border-top-color: var(--ok); }
+.wifi-icon.sig-bon .wifi-dot { background: var(--ok); }
+.wifi-icon.sig-moyen .wifi-arc.a3 { border-top-color: var(--warn); }
+.wifi-icon.sig-moyen .wifi-dot { background: var(--warn); }
+.wifi-icon.sig-faible .wifi-dot { background: var(--danger); }
+
+.wifi-info { flex: 1; min-width: 0; }
+.wifi-ssid {
+  font-size: 26px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;
+}
+
+.wifi-quality-line { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.wifi-quality-badge {
+  padding: 5px 14px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700; border: 2px solid currentColor;
+}
+.wifi-explain { font-size: 13px; color: var(--text2); line-height: 1.4; }
+
+/* Barres de signal */
+.wifi-bars { display: flex; align-items: flex-end; gap: 5px; height: 28px; margin-bottom: 4px; }
+.wbar { width: 14px; border-radius: 2px 2px 0 0; background: var(--bg3); transition: background 0.3s; }
+.wbar:nth-child(1) { height: 7px; }
+.wbar:nth-child(2) { height: 12px; }
+.wbar:nth-child(3) { height: 18px; }
+.wbar:nth-child(4) { height: 23px; }
+.wbar:nth-child(5) { height: 28px; }
+.wbar.on-ok     { background: var(--ok); }
+.wbar.on-warn   { background: var(--warn); }
+.wbar.on-danger { background: var(--danger); }
+.wifi-bars-lbl { font-size: 11px; color: var(--text3); }
+
+/* Détails techniques dépliables */
+.wifi-tech { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
+.wifi-tech summary {
+  font-size: 11px; color: var(--text3); cursor: pointer;
+  user-select: none; list-style: none; letter-spacing: 0.3px;
+}
+.wifi-tech summary::-webkit-details-marker { display: none; }
+.wifi-tech summary::before { content: '▶  '; font-size: 9px; }
+.wifi-tech[open] summary::before { content: '▼  '; }
+.wifi-tech-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px;
+}
+.wifi-tech-grid > div { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+.wifi-tech-grid span { color: var(--text3); }
+.wifi-tech-grid b { color: var(--text); font-weight: 600; font-size: 12px; }
+.wifi-spark { height: 40px; position: relative; margin-top: 10px; }
+
+/* compat IDs anciens (tw-rssi-val, tw-quality-badge gardés pour JS) */
+.tw-quality-badge { padding: 5px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; border: 2px solid currentColor; }
 
 /* ══ SPEEDTEST ════════════════════════════════════════════════════════════════ */
 .speedtest-panel {

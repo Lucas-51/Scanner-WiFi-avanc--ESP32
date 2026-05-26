@@ -19,10 +19,10 @@
     <div class="nav-item" onclick="showSection('alertes',this)">Alertes <div class="nav-dot" id="badge-alertes" style="display:none"></div></div>
     <div class="nav-item" onclick="showSection('sondes',this)">Capteurs</div>
     <div class="nav-item" onclick="showSection('detail',this)">À propos</div>
-    <div class="hdr-live" id="live-indicator">
+    <div class="hdr-live" id="live-indicator" title="Connexion base de données">
       <div class="live-dot"></div>
-      <span id="live-indicator-label">Init…</span>
-      <span class="hdr-live-sub" id="live-status">Connexion…</span>
+      <span style="display:none" id="live-indicator-label"></span>
+      <span style="display:none" id="live-status"></span>
       <span style="display:none" id="last-update"></span>
       <span style="display:none" id="page-title">Mon WiFi</span>
       <span style="display:none" id="topbar-time"></span>
