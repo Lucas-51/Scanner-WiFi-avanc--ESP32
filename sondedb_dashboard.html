@@ -18,7 +18,6 @@
     <div class="nav-item" onclick="showSection('spectrum',this)">Canaux</div>
     <div class="nav-item" onclick="showSection('alertes',this)">Alertes <div class="nav-dot" id="badge-alertes"></div></div>
     <div class="nav-item" onclick="showSection('sondes',this)">Capteurs</div>
-    <div class="nav-item" onclick="showSection('detail',this)">À propos</div>
     <div class="hdr-live" id="live-indicator" title="Connexion base de données">
       <div class="live-dot"></div>
       <span id="live-indicator-label"></span>
@@ -322,109 +321,6 @@
 
   </div><!-- /sec-sondes -->
 
-  <!-- ══ DÉTAIL SONDE ══════════════════════════════════════════════════════════ -->
-  <div class="section" id="sec-detail">
-
-    <div class="band">
-      <span class="band-title">Carte ESP32-WROOM-32 — Spécifications</span>
-    </div>
-
-    <div class="esp32-specs-grid">
-      <div class="spec-card">
-        <div class="spec-card-title">Processeur</div>
-        <div class="spec-row"><span class="spec-key">CPU</span><span class="spec-val">Xtensa LX6 dual-core</span></div>
-        <div class="spec-row"><span class="spec-key">Fréquence</span><span class="spec-val">jusqu'à 240 MHz</span></div>
-        <div class="spec-row"><span class="spec-key">Architecture</span><span class="spec-val">32 bits</span></div>
-        <div class="spec-row"><span class="spec-key">Co-proc. ULP</span><span class="spec-val">Oui (ultra-low power)</span></div>
-        <div class="spec-row"><span class="spec-key">FPU</span><span class="spec-val">Virgule flottante hw</span></div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-card-title">Mémoire</div>
-        <div class="spec-row"><span class="spec-key">SRAM</span><span class="spec-val">520 KB</span></div>
-        <div class="spec-row"><span class="spec-key">Flash SPI</span><span class="spec-val">4 MB (externe)</span></div>
-        <div class="spec-row"><span class="spec-key">ROM</span><span class="spec-val">448 KB</span></div>
-        <div class="spec-row"><span class="spec-key">RTC RAM lente</span><span class="spec-val">8 KB</span></div>
-        <div class="spec-row"><span class="spec-key">RTC RAM rapide</span><span class="spec-val">8 KB</span></div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-card-title">Connectivité RF</div>
-        <div class="spec-row"><span class="spec-key">WiFi</span><span class="spec-val">802.11 b/g/n 2.4 GHz</span></div>
-        <div class="spec-row"><span class="spec-key">Débit WiFi</span><span class="spec-val">jusqu'à 150 Mbps</span></div>
-        <div class="spec-row"><span class="spec-key">Bluetooth</span><span class="spec-val">Classic BT 4.2 + BLE</span></div>
-        <div class="spec-row"><span class="spec-key">Modes WiFi</span><span class="spec-val">STA / AP / AP+STA</span></div>
-        <div class="spec-row"><span class="spec-key">Antenne</span><span class="spec-val">PCB intégrée + IPEX</span></div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-card-title">I/O &amp; Alimentation</div>
-        <div class="spec-row"><span class="spec-key">GPIO</span><span class="spec-val">38 broches</span></div>
-        <div class="spec-row"><span class="spec-key">ADC</span><span class="spec-val">12 bits — 18 canaux</span></div>
-        <div class="spec-row"><span class="spec-key">DAC</span><span class="spec-val">8 bits — 2 canaux</span></div>
-        <div class="spec-row"><span class="spec-key">Tension E/S</span><span class="spec-val">3.3 V (alim. 5V USB)</span></div>
-        <div class="spec-row"><span class="spec-key">Conso. active</span><span class="spec-val">~80 mA (WiFi TX)</span></div>
-      </div>
-    </div>
-
-    <div class="band band-no-mt">
-      <span class="band-title">Interfaces disponibles</span>
-      <span>·</span>
-      <span>Rôle dans SondeDB</span>
-    </div>
-
-    <div class="split-2">
-      <div class="panel">
-        <div class="panel-title">Interfaces</div>
-        <div class="chips-wrap">
-          <div class="feature-chip hi">UART ×3</div>
-          <div class="feature-chip hi">SPI ×4</div>
-          <div class="feature-chip hi">I²C ×2</div>
-          <div class="feature-chip hi">I²S ×2</div>
-          <div class="feature-chip hi">PWM (LEDC)</div>
-          <div class="feature-chip hi">Touch ×10</div>
-          <div class="feature-chip blue">CAN 2.0</div>
-          <div class="feature-chip blue">Ethernet MAC</div>
-          <div class="feature-chip blue">SD / MMC</div>
-          <div class="feature-chip blue">RMT (IR)</div>
-          <div class="feature-chip">JTAG debug</div>
-          <div class="feature-chip">Hall sensor</div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">Rôle de la sonde</div>
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="timeline-dot-wrap">
-              <div class="timeline-dot"></div>
-              <div class="timeline-line"></div>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-header"><span class="timeline-tech">Scan WiFi passif</span></div>
-              <div class="timeline-desc">Mode promiscuous sur tous les canaux 2.4 GHz — capture SSID, BSSID et RSSI environnants en continu.</div>
-            </div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-dot-wrap">
-              <div class="timeline-dot"></div>
-              <div class="timeline-line"></div>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-header"><span class="timeline-tech">Détection d'anomalies</span></div>
-              <div class="timeline-desc">Analyse des trames 802.11 pour identifier Evil Twin, Deauth Attack et Rogue AP en temps réel.</div>
-            </div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-dot-wrap">
-              <div class="timeline-dot"></div>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-header"><span class="timeline-tech">Envoi vers SondeDB</span></div>
-              <div class="timeline-desc">Transmission des mesures via HTTPS/JSON → stockage SQL et déclenchement automatique des alertes.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /sec-detail -->
 
 </main>
 
