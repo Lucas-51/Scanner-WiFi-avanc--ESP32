@@ -6,12 +6,12 @@ Projet BTS CIEL — détection des réseaux WiFi et anomalies (Evil Twin)
 ## Vue d'ensemble
 
 ```
-┌──────────────┐    HTTP POST JSON     ┌──────────────────┐    SQL    ┌─────────┐
+┌──────────────┐    HTTPS POST JSON    ┌──────────────────┐    SQL    ┌─────────┐
 │   ESP32      │ ────────────────────▶ │   api.php (PHP)  │ ────────▶ │  MySQL  │
 │  (firmware)  │   /api/ingest         │                  │           │ sondedb │
 └──────────────┘                       └──────────────────┘           └─────────┘
                                               ▲
-                                              │ /api/dashboard
+                                              │ /api/dashboard (polling 8s)
                                        ┌──────────────────┐
                                        │  Dashboard HTML  │
                                        │   (navigateur)   │
@@ -19,56 +19,90 @@ Projet BTS CIEL — détection des réseaux WiFi et anomalies (Evil Twin)
 ```
 
 Trois briques :
-1. **ESP32** — scanne les réseaux WiFi 2.4 GHz et envoie les mesures
+1. **ESP32** — scanne les réseaux WiFi 2.4 GHz et envoie les mesures en HTTPS
 2. **API PHP** — reçoit les scans et lit/écrit dans MySQL
-3. **Dashboard** — affiche les données en temps réel
+3. **Dashboard** — affiche les données en temps réel (polling toutes les 8 s)
 
 ## Arborescence
 
 ```
-├── config.php              Configuration centrale (DB, token API)
-├── db.php                  Connexion PDO + fonctions utilitaires
-├── api.php                 Routeur unique pour /api/*
-├── index.php               Page d'accueil (vérifie la session)
-├── login.html              Page de connexion
-├── sondedb_dashboard.html  Dashboard HTML
-├── .htaccess               Règles de rewriting Apache
+Scanner WiFi avancé ESP32/
 │
-├── css/style.css           Styles du dashboard
-├── js/dashboard.js         Logique du dashboard (KPIs, charts, tables)
-├── js/live-data.js         Rafraîchissement automatique toutes les 8 s
-├── js/speedtest.js         Mesure RSSI + débit download/upload
+├── README.md                  Ce fichier
 │
-├── sql/sondedb.sql         Schéma de la base + compte admin par défaut
-└── firmware/esp32_wifi_probe/esp32_wifi_probe.ino   Sketch Arduino C++
+├── docs/                      📄 Documentation projet (BTS)
+│   ├── MCD_SondeDB.png                  Modèle Conceptuel de Données
+│   ├── Sequence_EvilTwin_SondeDB.png    Diagramme de séquence
+│   └── Cahier_Recettage_SondeDB.docx    Plan de tests
+│
+├── index.php                  ⚙️  Entrée dashboard (vérif session)
+├── login.html                 🔐  Page de connexion (HTML pur)
+├── api.php                    🌐  Routeur API REST
+├── config.php                 🔒  Config DB + token (jamais exposé)
+├── db.php                     🔌  Connexion PDO + fonctions utilitaires
+├── sondedb_dashboard.html     📊  Template dashboard
+├── .htaccess                  🔁  Règles de rewriting Apache
+│
+├── css/
+│   ├── dashboard.css          Styles du dashboard
+│   └── login.css              Styles de la page de connexion
+│
+├── js/
+│   ├── dashboard.js           Logique du dashboard (KPIs, charts, tables)
+│   ├── live-data.js           Polling toutes les 8 s
+│   ├── speedtest.js           Mesure RSSI + débit download/upload
+│   └── login.js               Logique du formulaire de connexion
+│
+├── firmware/
+│   └── esp32_wifi_probe/
+│       └── esp32_wifi_probe.ino    Firmware Arduino C++
+│
+└── sql/
+    └── sondedb.sql            Schéma de la base + admin par défaut
 ```
 
 ## Déploiement
 
-Sur le serveur Ubuntu (`10.1.40.51` — Apache + MySQL + phpMyAdmin) :
+Sur le serveur Ubuntu 24.04 (`10.1.40.51` — Apache + MySQL + HTTPS) :
 
 ```bash
-sudo a2enmod rewrite
+sudo a2enmod rewrite headers ssl
 sudo apt install php php-mysql -y
 sudo systemctl restart apache2
 ```
 
-Depuis le Mac :
+Depuis le Mac (déploiement complet) :
 
 ```bash
+cd "/Users/lucasvarnier/Desktop/Scanner WiFi avancé ESP32"
+
+# Copie de tous les fichiers nécessaires au serveur web
 scp -r .htaccess api.php config.php db.php index.php login.html \
-       sondedb_dashboard.html css js sql firmware \
+       sondedb_dashboard.html css js sql \
        lucas@10.1.40.51:/tmp/sondedb/
 
-ssh -t lucas@10.1.40.51 'sudo cp -r /tmp/sondedb/. /var/www/html/ &&
-                        sudo mysql < /var/www/html/sql/sondedb.sql &&
-                        sudo chown -R www-data:www-data /var/www/html'
+# Installation côté serveur
+ssh -t lucas@10.1.40.51 'sudo cp -r /tmp/sondedb/. /var/www/html/ && \
+                         sudo mysql < /var/www/html/sql/sondedb.sql && \
+                         sudo chown -R www-data:www-data /var/www/html'
 ```
 
-Édite `config.php` pour mettre tes propres credentials MySQL et un nouveau token API.
+Édite `config.php` pour mettre tes propres credentials MySQL et token API.
 
-Dashboard : **http://10.1.40.51/**
-Login par défaut : `admin` / `admin1234` (à changer immédiatement)
+- **Dashboard** : https://10.1.40.51/
+- **Login par défaut** : `admin` / `admin1234` (à changer immédiatement)
+
+## Sécurité
+
+Le serveur est sécurisé selon les bonnes pratiques :
+
+- **UFW** : firewall actif, seuls les ports 22 / 80 / 443 ouverts
+- **HTTPS** : redirection forcée HTTP → HTTPS
+- **Fail2ban** : bannissement IP après 5 tentatives de connexion échouées
+- **MySQL** : écoute uniquement sur `127.0.0.1`, droits limités à SELECT/INSERT/UPDATE/DELETE
+- **SSH** : root interdit, max 3 tentatives, timeout 30 s
+- **Apache** : headers X-Frame-Options, HSTS, X-Content-Type-Options
+- **Mises à jour** : `unattended-upgrades` activé
 
 ## Endpoints API
 
@@ -90,21 +124,28 @@ Login par défaut : `admin` / `admin1234` (à changer immédiatement)
 ```json
 {
   "probe":        { "id": 1, "name": "ESP32-LAB", "location": "Lab CIEL" },
-  "measurements": [ { "ssid": "...", "bssid": "AA:BB:..", "rssi": -62, "channel": 6 } ],
-  "alerts":       [ { "type": "Evil Twin", "description": "...", "level": "critical" } ]
+  "measurements": [
+    { "ssid": "WiFi-Maison", "bssid": "AA:BB:CC:DD:EE:FF", "rssi": -62, "channel": 6 }
+  ],
+  "alerts": [
+    { "type": "Evil Twin", "description": "SSID dupliqué détecté", "level": "critical" }
+  ]
 }
 ```
 
-Header HTTP requis : `X-API-Token: <token>` (défini dans `config.php`).
+Header HTTP optionnel : `X-API-Token: <token>` (si défini dans `config.php`).
 
 ## Firmware ESP32
 
 Sketch dans `firmware/esp32_wifi_probe/esp32_wifi_probe.ino`.
-La configuration se fait via le **portail WiFiManager** au premier démarrage :
-maintenir GPIO0 (BOOT) 3 secondes pour rouvrir le portail à tout moment.
 
-Champs à remplir dans le portail :
-- SSID + mot de passe du WiFi
-- URL API : `http://10.1.40.51/api/ingest`
-- Token API
+Configuration via le **portail WiFiManager** au premier démarrage :
+maintenir le bouton **BOOT** (GPIO0) **3 secondes** pour rouvrir le portail.
+
+Champs à remplir dans le portail (réseau `SondeDB-Config`, mdp `sondedb1234`) :
+- SSID + mot de passe du WiFi local
+- URL API : `https://10.1.40.51/api/ingest`
+- Token API (optionnel)
 - Nom + localisation + ID de la sonde
+
+Le firmware migre automatiquement `http://` → `https://` au démarrage.
