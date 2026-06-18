@@ -63,7 +63,7 @@ Scanner WiFi avancé ESP32/
 
 ## Déploiement
 
-Sur le serveur Ubuntu 24.04 (`10.1.40.51` — Apache + MySQL + HTTPS) :
+Sur le serveur Ubuntu 24.04 (`10.1.40.14` — Apache + MySQL + HTTPS) :
 
 ```bash
 sudo a2enmod rewrite headers ssl
@@ -79,17 +79,17 @@ cd "/Users/lucasvarnier/Desktop/Scanner WiFi avancé ESP32"
 # Copie de tous les fichiers nécessaires au serveur web
 scp -r .htaccess api.php config.php db.php index.php login.html \
        sondedb_dashboard.html css js sql \
-       lucas@10.1.40.51:/tmp/sondedb/
+       lucas@10.1.40.14:/tmp/sondedb/
 
 # Installation côté serveur
-ssh -t lucas@10.1.40.51 'sudo cp -r /tmp/sondedb/. /var/www/html/ && \
+ssh -t lucas@10.1.40.14 'sudo cp -r /tmp/sondedb/. /var/www/html/ && \
                          sudo mysql < /var/www/html/sql/sondedb.sql && \
                          sudo chown -R www-data:www-data /var/www/html'
 ```
 
 Édite `config.php` pour mettre tes propres credentials MySQL et token API.
 
-- **Dashboard** : https://10.1.40.51/
+- **Dashboard** : https://10.1.40.14/
 - **Login par défaut** : `admin` / `admin1234` (à changer immédiatement)
 
 ## Sécurité
@@ -144,7 +144,7 @@ maintenir le bouton **BOOT** (GPIO0) **3 secondes** pour rouvrir le portail.
 
 Champs à remplir dans le portail (réseau `SondeDB-Config`, mdp `sondedb1234`) :
 - SSID + mot de passe du WiFi local
-- URL API : `https://10.1.40.51/api/ingest`
+- URL API : `https://10.1.40.14/api/ingest`
 - Token API (optionnel)
 - Nom + localisation + ID de la sonde
 

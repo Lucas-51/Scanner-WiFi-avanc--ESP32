@@ -5,7 +5,7 @@
 #include <Preferences.h>   // stockage flash interne ESP32
 
 // ── Config runtime (chargée depuis le flash) ──────────────────────────────────
-char g_apiUrl[128]    = "https://10.1.40.51/api/ingest";
+char g_apiUrl[128]    = "https://10.1.40.14/api/ingest";
 char g_apiToken[80]   = "";
 char g_probeName[50]  = "ESP32-LAB";
 char g_probeLoc[100]  = "Non configuree";
